@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Ubuntu Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-glb-50: #f2f6f7;
+  --color-glb-100: #dfeaec;
+  --color-glb-200: #c2d7da;
+  --color-glb-300: #99bbc0;
+  --color-glb-400: #6d9499;
+  --color-glb-500: #56797d;
+  --color-glb-600: #436063;
+  --color-glb-700: #384e51;
+  --color-glb-800: #2e3f42;
+  --color-glb-900: #162124;
+  --color-glb-950: #0f1719;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-glb-50 text-slate-900 dark:bg-glb-950 dark:text-slate-100 transition-colors duration-200;
+  }
+}

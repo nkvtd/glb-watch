@@ -1,0 +1,37 @@
+{
+  "name": "glb-watch",
+  "version": "1.0.0",
+  "description": "Frontend dashboard for glb API",
+  "homepage": "https://github.com/nkvtd/glb-watch#readme",
+  "bugs": {
+    "url": "https://github.com/nkvtd/glb-watch/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nkvtd/glb-watch.git"
+  },
+  "scripts": {
+    "dev": "vike dev",
+    "build": "vike build",
+    "preview": "vike build && vike preview",
+    "lint": "biome lint --write src",
+    "lint:fix": "biome check --write src",
+    "format": "biome format --write src",
+    "prod": "docker compose up -d --build"
+  },
+  "dependencies": {
+    "vike": "^0.4.268",
+    "vike-vue": "^0.9.16",
+    "vue": "^3.5.44",
+    "@vicons/ionicons5": "^0.13.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5"
+  },
+  "type": "module"
+}
