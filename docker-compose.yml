@@ -1,11 +1,19 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    container_name: glb-watch
+    image: ghcr.io/nkvtd/glb-watch:latest
     ports:
       - "${PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
+    networks:
+      - default
+      - edge-proxy
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
+
+networks:
+  edge-proxy:
+    external: true
