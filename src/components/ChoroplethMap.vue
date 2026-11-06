@@ -21,11 +21,13 @@
                 @click="resetView"
             >
                 <CloseOutline class="w-3.5 h-3.5" />
-                <span>Ресетирај поглед</span>
+                <span>Исчисти поглед</span>
             </button>
         </div>
 
-        <div class="absolute top-3 right-3 z-10 flex flex-col border border-slate-400 dark:border-glb-700 bg-white dark:bg-glb-950 divide-y divide-slate-300 dark:divide-glb-800 shadow-sm">
+        <div
+            class="absolute top-3 right-3 z-10 flex flex-col border border-slate-400 dark:border-glb-700 bg-white dark:bg-glb-950 divide-y divide-slate-300 dark:divide-glb-800 shadow-sm"
+        >
             <button
                 type="button"
                 aria-label="Зголеми"
@@ -54,6 +56,7 @@
             @pointerdown="onPointerDown"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
+            @pointercancel="onPointerUp"
             @pointerleave="onPointerLeave"
             @click="onBackgroundClick"
         >
@@ -93,7 +96,10 @@
                     stroke-linejoin="round"
                 />
                 <path
-                    v-if="hoveredMunicipalityPath && hoveredCode !== selectedMunicipalityCode"
+                    v-if="
+                        hoveredMunicipalityPath &&
+                        hoveredCode !== selectedMunicipalityCode
+                    "
                     :d="hoveredMunicipalityPath"
                     fill="none"
                     :stroke="highlightStrokeColor"
@@ -116,9 +122,12 @@
                         stroke-width="1.2"
                         vector-effect="non-scaling-stroke"
                         class="cursor-pointer"
-                        @mouseenter="hoveredReport = r; hoveredCode = r.resolvedCode"
+                        @mouseenter="
+                            hoveredReport = r;
+                            hoveredCode = r.resolvedCode;
+                        "
                         @mouseleave="hoveredReport = null"
-                        @click.stop="$emit('selectReport', r)"
+                        @click.stop="onPinClick(r)"
                     />
                     <circle
                         v-else
@@ -130,9 +139,12 @@
                         stroke-width="1.2"
                         vector-effect="non-scaling-stroke"
                         class="cursor-pointer"
-                        @mouseenter="hoveredReport = r; hoveredCode = r.resolvedCode"
+                        @mouseenter="
+                            hoveredReport = r;
+                            hoveredCode = r.resolvedCode;
+                        "
                         @mouseleave="hoveredReport = null"
-                        @click.stop="$emit('selectReport', r)"
+                        @click.stop="onPinClick(r)"
                     />
                 </template>
             </g>
@@ -238,7 +250,9 @@
             class="absolute z-20 w-60 p-2.5 bg-white/95 dark:bg-glb-950/95 border-2 border-slate-800 dark:border-glb-400 shadow-md pointer-events-none"
             :style="tooltipStyle"
         >
-            <div class="flex items-center justify-between border-b border-slate-300 dark:border-glb-800 pb-1">
+            <div
+                class="flex items-center justify-between border-b border-slate-300 dark:border-glb-800 pb-1"
+            >
                 <span class="text-xs font-bold uppercase tracking-wide">
                     {{ tooltipMunicipality.nameMk }}
                 </span>
@@ -251,33 +265,51 @@
                 <div class="font-mono font-bold text-glb-600 dark:text-glb-300">
                     {{ STATUS_META[hoveredReport.status].labelMk }}
                 </div>
-                <div class="font-semibold leading-snug">{{ hoveredReport.title }}</div>
+                <div class="font-semibold leading-snug">
+                    {{ hoveredReport.title }}
+                </div>
             </div>
 
             <div v-else class="mt-1.5 space-y-1 text-[11px] font-mono">
                 <div class="flex justify-between">
                     <span class="text-slate-600 dark:text-slate-400">Во тек:</span>
-                    <span class="font-bold text-red-600 dark:text-red-400">{{ tooltipStats.ongoing }}</span>
+                    <span class="font-bold text-red-600 dark:text-red-400">
+                        {{ tooltipStats.ongoing }}
+                    </span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-slate-600 dark:text-slate-400">Најавено:</span>
-                    <span class="font-bold text-amber-500 dark:text-amber-300">{{ tooltipStats.scheduled }}</span>
+                    <span class="text-slate-600 dark:text-slate-400">
+                        Најавено:
+                    </span>
+                    <span class="font-bold text-amber-500 dark:text-amber-300">
+                        {{ tooltipStats.scheduled }}
+                    </span>
                 </div>
                 <div v-if="tooltipStats.omitted > 0" class="flex justify-between">
-                    <span class="text-slate-600 dark:text-slate-400">Мерни станици:</span>
-                    <span class="font-bold text-teal-600 dark:text-teal-400">{{ tooltipStats.omitted }}</span>
+                    <span class="text-slate-600 dark:text-slate-400">
+                        Мерни станици:
+                    </span>
+                    <span class="font-bold text-teal-600 dark:text-teal-400">
+                        {{ tooltipStats.omitted }}
+                    </span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white/95 dark:bg-glb-950/95 border-t border-slate-300 dark:border-glb-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono shrink-0">
+        <div
+            class="bg-white/95 dark:bg-glb-950/95 border-t border-slate-300 dark:border-glb-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono shrink-0"
+        >
             <div class="flex flex-wrap items-center gap-3">
                 <span class="inline-flex items-center gap-1.5">
-                    <span class="w-3 h-3 bg-slate-50 dark:bg-glb-800 border border-slate-400 inline-block"></span>
+                    <span
+                        class="w-3 h-3 bg-slate-50 dark:bg-glb-800 border border-slate-400 inline-block"
+                    ></span>
                     <span>Ништо</span>
                 </span>
                 <span class="inline-flex items-center gap-1.5">
-                    <span class="w-3 h-3 bg-amber-300 border border-amber-500 inline-block"></span>
+                    <span
+                        class="w-3 h-3 bg-amber-300 border border-amber-500 inline-block"
+                    ></span>
                     <span>Најавено</span>
                 </span>
                 <span class="inline-flex items-center gap-1.5">
@@ -289,7 +321,9 @@
                     <span>3+ во тек</span>
                 </span>
                 <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 bg-teal-500 border border-slate-900 inline-block"></span>
+                    <span
+                        class="w-2.5 h-2.5 bg-teal-500 border border-slate-900 inline-block"
+                    ></span>
                     <span>Мерна станица</span>
                 </span>
             </div>
@@ -441,9 +475,14 @@ function toggleMunicipality(m: PrecomputedMunicipality) {
   );
 }
 
-function onBackgroundClick() {
+function onPinClick(r: ReportDto) {
   if (didDragMove.value) return;
-  if (props.selectedMunicipalityCode) {
+  emit("selectReport", r);
+}
+
+function onBackgroundClick(e: MouseEvent) {
+  if (didDragMove.value) return;
+  if (e.target === svgRef.value && props.selectedMunicipalityCode) {
     emit("selectMunicipality", null);
   }
 }
@@ -465,8 +504,8 @@ function zoomBy(factor: number) {
   animateViewBox({
     x: Math.max(0, Math.min(MAP_WIDTH - newW, cx - newW / 2)),
     y: Math.max(0, Math.min(MAP_HEIGHT - newH, cy - newH / 2)),
-    w: newW,
-    h: newH,
+    w,
+    h,
   });
 }
 
@@ -497,34 +536,128 @@ const isDragging = ref(false);
 const didDragMove = ref(false);
 let dragStart = { x: 0, y: 0, vx: 0, vy: 0 };
 
+const activePointers = new Map<number, { x: number; y: number }>();
+let lastPinchDist = 0;
+let lastPinchMid = { x: 0, y: 0 };
+
+function getPinchMetrics() {
+  const pts = Array.from(activePointers.values());
+
+  if (pts.length < 2) return { dist: 0, mid: { x: 0, y: 0 } };
+  const p1 = pts[0];
+  const p2 = pts[1];
+  return {
+    dist: Math.hypot(p2.x - p1.x, p2.y - p1.y),
+    mid: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 },
+  };
+}
+
 function onPointerDown(e: PointerEvent) {
-  if (e.button !== 0) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
   if (animFrame) cancelAnimationFrame(animFrame);
-  isDragging.value = true;
-  didDragMove.value = false;
-  dragStart = { x: e.clientX, y: e.clientY, vx: viewBox.x, vy: viewBox.y };
+
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size === 1) {
+    isDragging.value = true;
+    didDragMove.value = false;
+    dragStart = {
+      x: e.clientX,
+      y: e.clientY,
+      vx: viewBox.x,
+      vy: viewBox.y,
+    };
+  } else if (activePointers.size === 2) {
+    didDragMove.value = true;
+    const { dist, mid } = getPinchMetrics();
+    lastPinchDist = dist;
+    lastPinchMid = mid;
+  }
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (!isDragging.value || !svgRef.value) return;
-  const dist = Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y);
-  if (dist > 4) didDragMove.value = true;
+  if (!svgRef.value || !activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   const rect = svgRef.value.getBoundingClientRect();
-  const dx = ((e.clientX - dragStart.x) / rect.width) * viewBox.w;
-  const dy = ((e.clientY - dragStart.y) / rect.height) * viewBox.h;
-  viewBox.x = Math.max(0, Math.min(MAP_WIDTH - viewBox.w, dragStart.vx - dx));
-  viewBox.y = Math.max(0, Math.min(MAP_HEIGHT - viewBox.h, dragStart.vy - dy));
+
+  if (activePointers.size === 2) {
+    const { dist, mid } = getPinchMetrics();
+    if (lastPinchDist > 8 && dist > 8) {
+      const scale = lastPinchDist / dist;
+      const newW = Math.max(90, Math.min(MAP_WIDTH, viewBox.w * scale));
+      const newH = newW * (MAP_HEIGHT / MAP_WIDTH);
+
+      const relX = (mid.x - rect.left) / rect.width;
+      const relY = (mid.y - rect.top) / rect.height;
+
+      const anchorSvgX = viewBox.x + relX * viewBox.w;
+      const anchorSvgY = viewBox.y + relY * viewBox.h;
+
+      const panDx = ((mid.x - lastPinchMid.x) / rect.width) * newW;
+      const panDy = ((mid.y - lastPinchMid.y) / rect.height) * newH;
+
+      viewBox.x = Math.max(
+        0,
+        Math.min(MAP_WIDTH - newW, anchorSvgX - relX * newW - panDx),
+      );
+      viewBox.y = Math.max(
+        0,
+        Math.min(MAP_HEIGHT - newH, anchorSvgY - relY * newH - panDy),
+      );
+      viewBox.w = newW;
+      viewBox.h = newH;
+    }
+    lastPinchDist = dist;
+    lastPinchMid = mid;
+    return;
+  }
+
+  if (activePointers.size === 1 && isDragging.value) {
+    const dist = Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y);
+    if (dist > 5) didDragMove.value = true;
+
+    if (didDragMove.value) {
+      const dx = ((e.clientX - dragStart.x) / rect.width) * viewBox.w;
+      const dy = ((e.clientY - dragStart.y) / rect.height) * viewBox.h;
+      viewBox.x = Math.max(
+        0,
+        Math.min(MAP_WIDTH - viewBox.w, dragStart.vx - dx),
+      );
+      viewBox.y = Math.max(
+        0,
+        Math.min(MAP_HEIGHT - viewBox.h, dragStart.vy - dy),
+      );
+    }
+  }
 }
 
-function onPointerUp() {
-  isDragging.value = false;
+function onPointerUp(e: PointerEvent) {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 1) {
+    const remaining = Array.from(activePointers.values())[0];
+    dragStart = {
+      x: remaining.x,
+      y: remaining.y,
+      vx: viewBox.x,
+      vy: viewBox.y,
+    };
+  } else if (activePointers.size === 0) {
+    isDragging.value = false;
+    lastPinchDist = 0;
+  }
 }
 
-function onPointerLeave() {
-  isDragging.value = false;
-  hoveredCode.value = null;
-  hoveredReport.value = null;
+function onPointerLeave(e: PointerEvent) {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 0) {
+    isDragging.value = false;
+    lastPinchDist = 0;
+  }
+  if (e.pointerType === "mouse") {
+    hoveredCode.value = null;
+    hoveredReport.value = null;
+  }
 }
 
 function onContainerMouseMove(e: MouseEvent) {
@@ -563,7 +696,7 @@ const geocodedReports = computed(() =>
     .map((r) => ({
       ...r,
       resolvedCode: resolveReportMunicipalityCode(r, props.municipalities),
-      svgPt: projectPoint(r.coordinates.lng, r.coordinates.lat),
+      svgPt: projectPoint(r.coordinates?.lng, r.coordinates?.lat),
     })),
 );
 

@@ -55,14 +55,41 @@ export const CATEGORY_META: Record<
     barColor: "#6366f1",
   },
   wildfire: {
-    labelMk: "Пожари и земјотреси",
-    shortMk: "Итни",
+    labelMk: "Пожари",
+    shortMk: "Пожари",
     colorHex: "#dc2626",
     badgeClass:
       "bg-red-100 text-red-950 border-red-400 dark:bg-red-950/60 dark:text-red-300 dark:border-red-700",
     barColor: "#ef4444",
   },
+  earthquake: {
+    labelMk: "Сеизмичка активност",
+    shortMk: "Земјотреси",
+    colorHex: "#e11d48",
+    badgeClass:
+      "bg-rose-100 text-rose-950 border-rose-400 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700",
+    barColor: "#f43f5e",
+  },
 };
+
+const DEFAULT_CATEGORY_META = {
+  labelMk: "Останато",
+  shortMk: "Останато",
+  colorHex: "#56797d",
+  badgeClass:
+    "bg-slate-200 text-slate-900 border-slate-400 dark:bg-glb-800 dark:text-slate-200 dark:border-glb-600",
+  barColor: "#56797d",
+};
+
+export function getCategoryMeta(category: ReportCategory) {
+  return (
+    CATEGORY_META[category] ?? {
+      ...DEFAULT_CATEGORY_META,
+      labelMk: category,
+      shortMk: category,
+    }
+  );
+}
 
 export const STATUS_META: Record<
   LifecycleStatus,
@@ -106,6 +133,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   moepp: "Министерство за животна средина и просторно планирање",
   "sensor-community": "Sensor.Community",
   meteoalarm: "Meteoalarm",
+  "emsc-csem": "EMSC Сеизмички портал",
 };
 
 export function createEmptyBreakdown(): CategoryBreakdown {
@@ -113,13 +141,6 @@ export function createEmptyBreakdown(): CategoryBreakdown {
     ongoing: 0,
     scheduled: 0,
     omitted: 0,
-    byCategory: {
-      power: { ongoing: 0, scheduled: 0, omitted: 0 },
-      water: { ongoing: 0, scheduled: 0, omitted: 0 },
-      road: { ongoing: 0, scheduled: 0, omitted: 0 },
-      weather: { ongoing: 0, scheduled: 0, omitted: 0 },
-      wildfire: { ongoing: 0, scheduled: 0, omitted: 0 },
-      air_quality: { ongoing: 0, scheduled: 0, omitted: 0 },
-    },
+    byCategory: {},
   };
 }

@@ -281,6 +281,7 @@ import NearbyRadarPanel from "../../components/NearbyRadarPanel.vue";
 import ReportsExplorer from "../../components/ReportsExplorer.vue";
 import { useNearbyRadar } from "../../composables/useNearbyRadar";
 import { useReportsFeed } from "../../composables/useReportsFeed";
+import { useTheme } from "../../composables/useTheme";
 import { resolveReportMunicipalityCode } from "../../util/api";
 import { createEmptyBreakdown } from "../../util/constants";
 import type {
@@ -296,7 +297,6 @@ const municipalities = ref(ssrData.municipalities);
 const mapReports = ref<ReportDto[]>(ssrData.mapReports);
 const activeEvents = ref(ssrData.activeEvents);
 
-const isDark = ref(true);
 const leaderboardSearch = ref("");
 const highlightedReportId = ref<number | null>(null);
 
@@ -306,18 +306,19 @@ const radar = useNearbyRadar((code) => {
   feed.refreshFeed();
 });
 
-function toggleTheme() {
-  isDark.value = !isDark.value;
-  document.documentElement.classList.toggle("dark", isDark.value);
-  localStorage.setItem("glb-theme", isDark.value ? "dark" : "light");
-}
+const { isDark, toggleTheme } = useTheme();
 
 function handleGlobalClick(e: MouseEvent) {
   if (!feed.municipalityFilter.value) return;
   const target = e.target as HTMLElement | null;
   if (!target) return;
   if (!target.closest("[data-muni-interactive]")) {
-    onSelectMunicipality(null);
+    if (feed.municipalityFilter.value) {
+      onSelectMunicipality(null);
+    }
+    if (highlightedReportId.value !== null) {
+      highlightedReportId.value = null;
+    }
   }
 }
 
@@ -362,15 +363,20 @@ const statsByMunicipality = computed<Record<string, CategoryBreakdown>>(() => {
       entry = createEmptyBreakdown();
       map[code] = entry;
     }
+    let catBucket = entry.byCategory[r.category];
+    if (!catBucket) {
+      catBucket = { ongoing: 0, scheduled: 0, omitted: 0 };
+      entry.byCategory[r.category] = catBucket;
+    }
     if (r.status === "ongoing") {
       entry.ongoing += 1;
-      entry.byCategory[r.category].ongoing += 1;
+      catBucket.ongoing += 1;
     } else if (r.status === "scheduled") {
       entry.scheduled += 1;
-      entry.byCategory[r.category].scheduled += 1;
+      catBucket.scheduled += 1;
     } else if (r.status === "omitted") {
       entry.omitted += 1;
-      entry.byCategory[r.category].omitted += 1;
+      catBucket.omitted += 1;
     }
   }
   return map;

@@ -1,72 +1,123 @@
 <template>
-    <section class="bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-800">
-        <div class="p-3 border-b border-slate-300 dark:border-glb-800 flex flex-wrap items-center justify-between gap-3">
+    <section
+        class="bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-800"
+    >
+        <div
+            class="p-3 border-b border-slate-300 dark:border-glb-800 flex items-center justify-between gap-3"
+        >
             <h2 class="text-sm font-bold uppercase tracking-wider">
-                Регистар на извештаи и мерења
+                Регистар
             </h2>
-
-            <div class="flex flex-wrap border border-slate-300 dark:border-glb-700 divide-x divide-slate-300 dark:divide-glb-700">
-                <button
-                    v-for="st in statusTabs"
-                    :key="st.value"
-                    type="button"
-                    class="px-2.5 py-1 text-xs font-mono uppercase cursor-pointer"
-                    :class="
-                        statusFilter === st.value
-                            ? 'bg-glb-500 text-white font-bold'
-                            : 'bg-slate-50 dark:bg-glb-950 hover:bg-slate-200 dark:hover:bg-glb-800'
-                    "
-                    @click="$emit('update:statusFilter', st.value)"
-                >
-                    {{ st.label }}
-                </button>
-            </div>
         </div>
 
-        <div class="p-3 bg-slate-100 dark:bg-glb-950 border-b border-slate-300 dark:border-glb-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div
+            class="grid grid-cols-2 sm:grid-cols-5 bg-slate-100 dark:bg-glb-950 border-b border-slate-300 dark:border-glb-800"
+        >
+            <button
+                v-for="(st, idx) in statusTabs"
+                :key="st.value"
+                type="button"
+                class="px-3 py-2 text-xs font-mono uppercase cursor-pointer transition-colors border-slate-300 dark:border-glb-800 flex items-center justify-center text-center"
+                :class="[
+                    idx === 0
+                        ? 'col-span-2 sm:col-span-1 border-b sm:border-b-0 sm:border-r'
+                        : '',
+                    idx === 1 || idx === 3
+                        ? 'border-r'
+                        : '',
+                    idx === 2
+                        ? 'sm:border-r'
+                        : '',
+                    idx === 1 || idx === 2
+                        ? 'border-b sm:border-b-0'
+                        : '',
+                    statusFilter === st.value
+                        ? 'bg-glb-500 text-white font-bold'
+                        : 'hover:bg-slate-200 dark:hover:bg-glb-800 text-slate-800 dark:text-slate-200',
+                ]"
+                @click="$emit('update:statusFilter', st.value)"
+            >
+                {{ st.label }}
+            </button>
+        </div>
+
+        <div
+            class="p-3 bg-slate-100 dark:bg-glb-950 border-b border-slate-300 dark:border-glb-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+        >
             <div class="sm:col-span-2 flex flex-col gap-1">
-                <label class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400">
+                <label
+                    class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400"
+                >
                     Пребарување
                 </label>
                 <div class="relative">
-                    <SearchOutline class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <SearchOutline
+                        class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"
+                    />
                     <input
                         :value="searchQuery"
                         type="text"
                         placeholder="Улица, населба или клучен збор..."
                         class="w-full pl-9 pr-3 py-1.5 text-xs font-mono bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-700 focus:outline-none focus:border-glb-500"
-                        @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
+                        @input="
+                            $emit(
+                                'update:searchQuery',
+                                ($event.target as HTMLInputElement).value,
+                            )
+                        "
                     />
                 </div>
             </div>
 
             <div class="flex flex-col gap-1">
-                <label class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400">
+                <label
+                    class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400"
+                >
                     Извор на податоци
                 </label>
                 <select
                     :value="sourceFilter"
                     class="px-2.5 py-1.5 text-xs font-mono bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-700"
-                    @change="$emit('update:sourceFilter', ($event.target as HTMLSelectElement).value)"
+                    @change="
+                        $emit(
+                            'update:sourceFilter',
+                            ($event.target as HTMLSelectElement).value,
+                        )
+                    "
                 >
                     <option value="">Сите извори</option>
-                    <option v-for="(label, src) in SOURCE_LABELS" :key="src" :value="src">
-                        {{ label }}
+                    <option
+                        v-for="src in availableSources"
+                        :key="src.key"
+                        :value="src.key"
+                    >
+                        {{ src.label }}
                     </option>
                 </select>
             </div>
 
             <div class="flex flex-col gap-1">
-                <label class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400">
+                <label
+                    class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400"
+                >
                     Подреди по
                 </label>
                 <select
                     :value="sortOption"
                     class="px-2.5 py-1.5 text-xs font-mono bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-700"
-                    @change="$emit('update:sortOption', ($event.target as HTMLSelectElement).value as any)"
+                    @change="
+                        $emit(
+                            'update:sortOption',
+                            ($event.target as HTMLSelectElement).value as any,
+                        )
+                    "
                 >
-                    <option value="startsAt:desc">Почеток (најнови прво)</option>
-                    <option value="startsAt:asc">Почеток (најстари прво)</option>
+                    <option value="startsAt:desc">
+                        Почеток (најнови прво)
+                    </option>
+                    <option value="startsAt:asc">
+                        Почеток (најстари прво)
+                    </option>
                     <option value="observedAt:desc">Последно проверени</option>
                 </select>
             </div>
@@ -93,15 +144,21 @@
                     "
                 >
                     <div class="space-y-2">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
                             <div class="flex items-center gap-1.5">
                                 <span
                                     class="px-2 py-0.5 text-[11px] font-mono font-bold border uppercase"
-                                    :class="CATEGORY_META[rep.category]?.badgeClass"
+                                    :class="
+                                        getCategoryMeta(rep.category).badgeClass
+                                    "
                                 >
-                                    {{ CATEGORY_META[rep.category]?.labelMk || rep.category }}
+                                    {{ getCategoryMeta(rep.category).labelMk }}
                                 </span>
-                                <span class="px-2 py-0.5 text-[11px] font-mono bg-slate-200 dark:bg-glb-800 text-slate-800 dark:text-slate-300">
+                                <span
+                                    class="px-2 py-0.5 text-[11px] font-mono bg-slate-200 dark:bg-glb-800 text-slate-800 dark:text-slate-300"
+                                >
                                     {{ SOURCE_LABELS[rep.source] || rep.source }}
                                 </span>
                             </div>
@@ -110,26 +167,46 @@
                                 class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono font-bold border"
                                 :class="STATUS_META[rep.status].badgeClass"
                             >
-                                <span class="w-1.5 h-1.5" :class="STATUS_META[rep.status].indicatorClass"></span>
+                                <span
+                                    class="w-1.5 h-1.5"
+                                    :class="
+                                        STATUS_META[rep.status].indicatorClass
+                                    "
+                                ></span>
                                 {{ STATUS_META[rep.status].labelMk }}
                             </span>
                         </div>
 
-                        <h3 class="text-sm font-bold leading-snug">{{ rep.title }}</h3>
-                        <p v-if="rep.description" class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <h3 class="text-sm font-bold leading-snug">
+                            {{ rep.title }}
+                        </h3>
+                        <p
+                            v-if="rep.description"
+                            class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed"
+                        >
                             {{ rep.description }}
                         </p>
                     </div>
 
-                    <div class="pt-2 border-t border-slate-200 dark:border-glb-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-400">
+                    <div
+                        class="pt-2 border-t border-slate-200 dark:border-glb-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-400"
+                    >
                         <div class="flex flex-wrap items-center gap-3">
-                            <span v-if="rep.locationLabel" class="font-bold text-slate-800 dark:text-slate-200">
+                            <span
+                                v-if="rep.locationLabel"
+                                class="font-bold text-slate-800 dark:text-slate-200"
+                            >
                                 {{ rep.locationLabel }}
                             </span>
                             <span v-if="rep.startsAt">
-                                Почеток: {{ formatMacedonianDateTime(rep.startsAt) }}
+                                Почеток:
+                                {{ formatMacedonianDateTime(rep.startsAt) }}
                             </span>
-                            <span v-if="rep.endsAt && rep.endsAt !== rep.startsAt">
+                            <span
+                                v-if="
+                                    rep.endsAt && rep.endsAt !== rep.startsAt
+                                "
+                            >
                                 Крај: {{ formatMacedonianDateTime(rep.endsAt) }}
                             </span>
                         </div>
@@ -154,14 +231,17 @@
                 Нема пронајдени записи за избраните параметри.
             </div>
 
-            <div v-if="hasNextPage" class="p-3 bg-slate-50 dark:bg-glb-950 flex justify-center">
+            <div
+                v-if="hasNextPage"
+                class="p-3 bg-slate-50 dark:bg-glb-950 flex justify-center"
+            >
                 <button
                     type="button"
                     :disabled="loading"
                     class="px-4 py-2 text-xs font-mono font-bold uppercase bg-glb-500 text-white hover:bg-glb-600 disabled:opacity-50 cursor-pointer"
                     @click="$emit('loadMore')"
                 >
-                    {{ loading ? 'Се вчитува...' : 'Вчитај повеќе записи' }}
+                    {{ loading ? "Се вчитува..." : "Вчитај повеќе записи" }}
                 </button>
             </div>
         </div>
@@ -174,12 +254,12 @@ import {
   LocateOutline,
   SearchOutline,
 } from "@vicons/ionicons5";
-import { ref } from "vue";
-import { CATEGORY_META, SOURCE_LABELS, STATUS_META } from "../util/constants";
+import { computed, ref } from "vue";
+import { getCategoryMeta, SOURCE_LABELS, STATUS_META } from "../util/constants";
 import { formatMacedonianDateTime } from "../util/formatters";
 import type { ReportDto } from "../util/types";
 
-defineProps<{
+const props = defineProps<{
   items: ReportDto[];
   hasNextPage: boolean;
   loading: boolean;
@@ -190,14 +270,13 @@ defineProps<{
   highlightedId: number | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   "update:statusFilter": [val: string];
   "update:searchQuery": [val: string];
   "update:sourceFilter": [val: string];
   "update:sortOption": [
     val: "startsAt:desc" | "startsAt:asc" | "observedAt:desc",
   ];
-  clearMunicipality: [];
   jumpToMap: [rep: ReportDto];
   loadMore: [];
 }>();
@@ -209,6 +288,19 @@ const statusTabs = [
   { label: "Мерни станици", value: "ongoing,omitted" },
   { label: "Завршени", value: "ended" },
 ];
+
+const availableSources = computed(() => {
+  const map = new Map<string, string>();
+  for (const [k, v] of Object.entries(SOURCE_LABELS)) {
+    map.set(k, v);
+  }
+  for (const item of props.items) {
+    if (item.source && !map.has(item.source)) {
+      map.set(item.source, item.source);
+    }
+  }
+  return Array.from(map.entries()).map(([key, label]) => ({ key, label }));
+});
 
 const scrollBoxRef = ref<HTMLElement | null>(null);
 

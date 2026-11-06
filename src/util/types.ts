@@ -4,7 +4,9 @@ export type ReportCategory =
   | "road"
   | "weather"
   | "wildfire"
-  | "air_quality";
+  | "air_quality"
+  | "earthquake"
+  | (string & {});
 
 export type EventCategory = "fuel_price" | "currency_exchange";
 
@@ -89,8 +91,10 @@ export interface CategoryBreakdown {
   ongoing: number;
   scheduled: number;
   omitted: number;
-  byCategory: Record<
-    ReportCategory,
-    { ongoing: number; scheduled: number; omitted: number }
+  byCategory: Partial<
+    Record<
+      ReportCategory,
+      { ongoing: number; scheduled: number; omitted: number }
+    >
   >;
 }

@@ -77,9 +77,9 @@
                 <div class="flex items-center justify-between gap-2">
                     <span
                         class="px-1.5 py-0.5 text-[11px] font-mono font-bold border uppercase"
-                        :class="CATEGORY_META[rep.category].badgeClass"
+                        :class="getCategoryMeta(rep.category).badgeClass"
                     >
-                        {{ CATEGORY_META[rep.category].shortMk }}
+                        {{ getCategoryMeta(rep.category).shortMk }}
                     </span>
                     <span
                         class="px-1.5 py-0.5 text-[11px] font-mono font-bold border"
@@ -104,7 +104,7 @@
 
 <script setup lang="ts">
 import { CloseOutline, LocateOutline } from "@vicons/ionicons5";
-import { CATEGORY_META, STATUS_META } from "../util/constants";
+import { CATEGORY_META, getCategoryMeta, STATUS_META } from "../util/constants";
 import type { Coordinates, MunicipalityDto, ReportDto } from "../util/types";
 
 defineProps<{

@@ -50,7 +50,7 @@
                 v-for="reg in regions"
                 :key="reg.code"
                 type="button"
-                class="px-3 py-2 text-xs font-mono uppercase shrink-0 cursor-pointer flex items-center gap-1.5"
+                class="px-6 py-2 text-xs font-mono uppercase shrink-0 cursor-pointer flex items-center gap-2"
                 :class="
                     selectedRegion === reg.code
                         ? 'bg-glb-500 text-white font-bold'

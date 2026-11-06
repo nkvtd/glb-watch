@@ -30,18 +30,25 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
     error.value = null;
 
     try {
-      const [muniRes, repRes] = await Promise.all([
-        fetchFromGlb<PaginatedResponse<MunicipalityDto>>(
-          `/municipalities?lat=${lat}&lng=${lng}&includeBoundary=false`,
-        ),
-        fetchFromGlb<PaginatedResponse<ReportDto>>(
+      if (!municipality.value) {
+        const [muniRes, repRes] = await Promise.all([
+          fetchFromGlb<PaginatedResponse<MunicipalityDto>>(
+            `/municipalities?lat=${lat}&lng=${lng}&includeBoundary=false`,
+          ),
+          fetchFromGlb<PaginatedResponse<ReportDto>>(
+            `/reports?lat=${lat}&lng=${lng}&radius=${safeRadius}&status=ongoing&pageSize=50`,
+          ),
+        ]);
+        municipality.value = muniRes.data[0] ?? null;
+        reports.value = repRes.data;
+        if (municipality.value) {
+          onMunicipalityDetected(municipality.value.code);
+        }
+      } else {
+        const repRes = await fetchFromGlb<PaginatedResponse<ReportDto>>(
           `/reports?lat=${lat}&lng=${lng}&radius=${safeRadius}&status=ongoing&pageSize=50`,
-        ),
-      ]);
-      municipality.value = muniRes.data[0] ?? null;
-      reports.value = repRes.data;
-      if (municipality.value) {
-        onMunicipalityDetected(municipality.value.code);
+        );
+        reports.value = repRes.data;
       }
     } catch (e) {
       error.value =
@@ -78,7 +85,11 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
         error.value =
           "Пристапот до локација беше одбиен. Овозможете локација во прелистувачот.";
       },
-      { enableHighAccuracy: true, timeout: 10_000 },
+      {
+        enableHighAccuracy: false,
+        timeout: 10_000,
+        maximumAge: 60_000,
+      },
     );
   }
 
