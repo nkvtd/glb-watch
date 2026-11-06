@@ -100,22 +100,35 @@
                             class="bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-800 flex-1 flex flex-col justify-between min-h-0"
                         >
                             <div class="flex flex-col flex-1 min-h-0">
-                                <div
-                                    class="px-3 py-2 border-b border-slate-300 dark:border-glb-800 flex items-center justify-between shrink-0"
+                                <button
+                                    type="button"
+                                    class="w-full px-3 py-2 border-b border-slate-300 dark:border-glb-800 flex items-center justify-between shrink-0 text-left cursor-pointer lg:cursor-default"
+                                    @click="mobileLeaderboardOpen = !mobileLeaderboardOpen"
                                 >
                                     <h2
                                         class="text-xs font-bold uppercase tracking-wider"
                                     >
                                         Најпогодени општини
                                     </h2>
-                                    <span class="text-[11px] font-mono text-slate-500">
-                                        Во тек / Најавени
-                                    </span>
-                                </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] font-mono text-slate-500">
+                                            Во тек / Најавени
+                                        </span>
+                                        <span
+                                            class="lg:hidden px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase bg-slate-100 dark:bg-glb-800 border border-slate-300 dark:border-glb-700"
+                                        >
+                                            {{ mobileLeaderboardOpen ? "▲" : "▼" }}
+                                        </span>
+                                    </div>
+                                </button>
 
                                 <div
-                                    class="p-2 border-b border-slate-200 dark:border-glb-800 relative shrink-0"
+                                    class="flex-col flex-1 min-h-0"
+                                    :class="mobileLeaderboardOpen ? 'flex' : 'hidden lg:flex'"
                                 >
+                                    <div
+                                        class="p-2 border-b border-slate-200 dark:border-glb-800 relative shrink-0"
+                                    >
                                     <SearchOutline
                                         class="w-3.5 h-3.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"
                                     />
@@ -181,6 +194,7 @@
                                         </div>
                                     </button>
                                 </div>
+                                </div>
                             </div>
 
                             <div
@@ -202,7 +216,7 @@
                                             ? 'bg-glb-700 text-white'
                                             : 'bg-glb-500 hover:bg-glb-600 text-white'
                                     "
-                                    @click="radar.triggerLocate"
+                                    @click="onTriggerLocate"
                                 >
                                     <span
                                         class="relative flex items-center justify-center w-4 h-4"
@@ -271,7 +285,7 @@
 <script setup lang="ts">
 import { LocateOutline, SearchOutline } from "@vicons/ionicons5";
 import { useData } from "vike-vue/useData";
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import AppFooter from "../../components/AppFooter.vue";
 import AppHeader from "../../components/AppHeader.vue";
 import CategoryBar from "../../components/CategoryBar.vue";
@@ -299,6 +313,7 @@ const activeEvents = ref(ssrData.activeEvents);
 
 const leaderboardSearch = ref("");
 const highlightedReportId = ref<number | null>(null);
+const mobileLeaderboardOpen = ref(false);
 
 const feed = useReportsFeed(ssrData.initialFeed);
 const radar = useNearbyRadar((code) => {
@@ -308,8 +323,17 @@ const radar = useNearbyRadar((code) => {
 
 const { isDark, toggleTheme } = useTheme();
 
+function onTriggerLocate() {
+  const willActivate = !radar.active.value;
+  radar.triggerLocate();
+  if (willActivate && typeof window !== "undefined") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
 function handleGlobalClick(e: MouseEvent) {
-  if (!feed.municipalityFilter.value) return;
+  if (!feed.municipalityFilter.value && highlightedReportId.value === null)
+    return;
   const target = e.target as HTMLElement | null;
   if (!target) return;
   if (!target.closest("[data-muni-interactive]")) {
@@ -502,8 +526,4 @@ function resetAll() {
   radar.closeRadar();
   feed.refreshFeed();
 }
-
-onMounted(() => {
-  isDark.value = document.documentElement.classList.contains("dark");
-});
 </script>

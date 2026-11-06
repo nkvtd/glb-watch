@@ -166,7 +166,7 @@ import {
   ChevronForwardOutline,
   CloseOutline,
 } from "@vicons/ionicons5";
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { createEmptyBreakdown } from "../util/constants";
 import type { CategoryBreakdown, PrecomputedMunicipality } from "../util/types";
 
@@ -181,9 +181,26 @@ const emit = defineEmits<{
 }>();
 
 const selectedRegion = ref<string>("all");
-const onlyActive = ref(false);
+const onlyActive = ref(true);
 const currentPage = ref(1);
-const pageSize = 16;
+
+const isMobile = ref(false);
+function updateViewport() {
+  if (typeof window !== "undefined") {
+    isMobile.value = window.innerWidth < 768;
+  }
+}
+onMounted(() => {
+  updateViewport();
+  window.addEventListener("resize", updateViewport, { passive: true });
+});
+onUnmounted(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("resize", updateViewport);
+  }
+});
+
+const pageSize = computed(() => (isMobile.value ? 6 : 16));
 
 function toggleRow(code: string) {
   emit(
@@ -232,7 +249,12 @@ const filteredRows = computed(() =>
       m,
       stats: props.statsByMunicipality[m.code] ?? createEmptyBreakdown(),
     }))
-    .filter((r) => !onlyActive.value || r.stats.ongoing + r.stats.scheduled > 0)
+    .filter(
+      (r) =>
+        !onlyActive.value ||
+        r.m.code === props.selectedMunicipalityCode ||
+        r.stats.ongoing + r.stats.scheduled > 0,
+    )
     .sort(
       (a, b) =>
         b.stats.ongoing - a.stats.ongoing ||
@@ -242,11 +264,32 @@ const filteredRows = computed(() =>
 );
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredRows.value.length / pageSize)),
+  Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)),
 );
 
 const pagedRows = computed(() => {
-  const start = (currentPage.value - 1) * pageSize;
-  return filteredRows.value.slice(start, start + pageSize);
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredRows.value.slice(start, start + pageSize.value);
 });
+
+watch(
+  () => props.selectedMunicipalityCode,
+  (code) => {
+    if (!code) return;
+    const m = props.municipalities.find((item) => item.code === code);
+    if (!m) return;
+
+    if (
+      selectedRegion.value !== "all" &&
+      selectedRegion.value !== m.regionCode
+    ) {
+      selectedRegion.value = m.regionCode;
+    }
+
+    const idx = filteredRows.value.findIndex((r) => r.m.code === code);
+    if (idx !== -1) {
+      currentPage.value = Math.floor(idx / pageSize.value) + 1;
+    }
+  },
+);
 </script>
