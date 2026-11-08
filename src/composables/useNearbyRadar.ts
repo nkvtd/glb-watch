@@ -1,19 +1,16 @@
 import { ref } from "vue";
-import { fetchFromGlb } from "../util/api";
-import type {
-  Coordinates,
-  MunicipalityDto,
-  PaginatedResponse,
-  ReportDto,
-} from "../util/types";
+import { apiClient } from "../util/api";
+import { toMunicipalitySlug } from "../util/formatters";
+import type { Coordinates, MunicipalityDto, ReportDto } from "../util/types";
 
-export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
+export function useNearbyRadar() {
   const active = ref(false);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const coords = ref<Coordinates | null>(null);
   const radiusMeters = ref(2500);
   const municipality = ref<MunicipalityDto | null>(null);
+  const municipalitySlug = ref<string | null>(null);
   const reports = ref<ReportDto[]>([]);
 
   function clampRadius(val: number): number {
@@ -31,23 +28,29 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
 
     try {
       if (!municipality.value) {
-        const [muniRes, repRes] = await Promise.all([
-          fetchFromGlb<PaginatedResponse<MunicipalityDto>>(
-            `/municipalities?lat=${lat}&lng=${lng}&includeBoundary=false`,
-          ),
-          fetchFromGlb<PaginatedResponse<ReportDto>>(
-            `/reports?lat=${lat}&lng=${lng}&radius=${safeRadius}&status=ongoing&pageSize=50`,
-          ),
+        const [muni, repRes] = await Promise.all([
+          apiClient.getMunicipalityByCoords(lat, lng),
+          apiClient.getReportsPage({
+            lat,
+            lng,
+            radius: safeRadius,
+            status: "ongoing",
+            pageSize: 50,
+          }),
         ]);
-        municipality.value = muniRes.data[0] ?? null;
+        municipality.value = muni;
+        municipalitySlug.value = muni
+          ? toMunicipalitySlug(muni.nameEn, muni.code)
+          : null;
         reports.value = repRes.data;
-        if (municipality.value) {
-          onMunicipalityDetected(municipality.value.code);
-        }
       } else {
-        const repRes = await fetchFromGlb<PaginatedResponse<ReportDto>>(
-          `/reports?lat=${lat}&lng=${lng}&radius=${safeRadius}&status=ongoing&pageSize=50`,
-        );
+        const repRes = await apiClient.getReportsPage({
+          lat,
+          lng,
+          radius: safeRadius,
+          status: "ongoing",
+          pageSize: 50,
+        });
         reports.value = repRes.data;
       }
     } catch (e) {
@@ -59,10 +62,6 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
   }
 
   function triggerLocate() {
-    if (active.value && !loading.value) {
-      closeRadar();
-      return;
-    }
     if (!("geolocation" in navigator)) {
       error.value = "Прелистувачот не поддржува геолокација.";
       active.value = true;
@@ -78,6 +77,7 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         };
+        municipality.value = null;
         await fetchSpatialData();
       },
       () => {
@@ -99,6 +99,7 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
     error.value = null;
     coords.value = null;
     municipality.value = null;
+    municipalitySlug.value = null;
     reports.value = [];
   }
 
@@ -109,6 +110,7 @@ export function useNearbyRadar(onMunicipalityDetected: (code: string) => void) {
     coords,
     radiusMeters,
     municipality,
+    municipalitySlug,
     reports,
     triggerLocate,
     fetchSpatialData,

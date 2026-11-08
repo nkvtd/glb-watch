@@ -1,5 +1,14 @@
 import type { EventDto } from "./types";
 
+export function toMunicipalitySlug(nameEn: string, code: string): string {
+  const cleaned = nameEn
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned || code.toLowerCase();
+}
+
 export function formatMacedonianDateTime(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -42,7 +51,29 @@ export function formatFuelTicker(ev?: EventDto): string {
   if (matches.length > 0) {
     return matches
       .map((m) => `${m[1]?.replace("ЕУРОСУПЕР ", "")}: ${m[2]} ден/л`)
-      .join("  |  ");
+      .join("  •  ");
   }
   return ev.description;
+}
+
+export function formatEventHeadline(ev: EventDto): {
+  tag: string;
+  text: string;
+} {
+  if (ev.category === "fuel_price") {
+    return {
+      tag: "ГОРИВА",
+      text: formatFuelTicker(ev),
+    };
+  }
+  if (ev.category === "currency_exchange") {
+    return {
+      tag: "НБРМ КУРС",
+      text: ev.description || ev.title,
+    };
+  }
+  return {
+    tag: "ИНФО",
+    text: ev.description ? `${ev.title}: ${ev.description}` : ev.title,
+  };
 }

@@ -4,84 +4,83 @@ import type {
   ReportCategory,
 } from "./types";
 
-export const CATEGORY_META: Record<
-  ReportCategory,
-  {
-    labelMk: string;
-    shortMk: string;
-    colorHex: string;
-    badgeClass: string;
-    barColor: string;
-  }
-> = {
+export interface CategoryMetaItem {
+  labelMk: string;
+  shortMk: string;
+  colorHex: string;
+  badgeClass: string;
+  barColor: string;
+}
+
+export const CATEGORY_META: Record<string, CategoryMetaItem> = {
   power: {
     labelMk: "Електрична енергија",
     shortMk: "Струја",
     colorHex: "#d97706",
     badgeClass:
-      "bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700",
-    barColor: "#f59e0b",
+      "bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/45 dark:text-amber-200 dark:border-amber-800/80",
+    barColor: "#d97706",
   },
   water: {
     labelMk: "Водовод и канализација",
     shortMk: "Вода",
     colorHex: "#0284c7",
     badgeClass:
-      "bg-sky-100 text-sky-950 border-sky-400 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-700",
-    barColor: "#0ea5e9",
+      "bg-sky-50 text-sky-900 border-sky-300 dark:bg-sky-950/45 dark:text-sky-200 dark:border-sky-800/80",
+    barColor: "#0284c7",
   },
   air_quality: {
     labelMk: "Квалитет на воздух",
     shortMk: "Воздух",
     colorHex: "#7c3aed",
     badgeClass:
-      "bg-violet-100 text-violet-950 border-violet-400 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-700",
-    barColor: "#8b5cf6",
+      "bg-violet-50 text-violet-900 border-violet-300 dark:bg-violet-950/45 dark:text-violet-200 dark:border-violet-800/80",
+    barColor: "#7c3aed",
   },
   weather: {
     labelMk: "Метео аларм",
     shortMk: "Метео",
-    colorHex: "#ea580c",
+    colorHex: "#c2410c",
     badgeClass:
-      "bg-orange-100 text-orange-950 border-orange-400 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-700",
-    barColor: "#f97316",
+      "bg-orange-50 text-orange-900 border-orange-300 dark:bg-orange-950/45 dark:text-orange-200 dark:border-orange-800/80",
+    barColor: "#ea580c",
   },
   road: {
     labelMk: "Сообраќај и патишта",
     shortMk: "Патишта",
     colorHex: "#4f46e5",
     badgeClass:
-      "bg-indigo-100 text-indigo-950 border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700",
+      "bg-indigo-50 text-indigo-900 border-indigo-300 dark:bg-indigo-950/45 dark:text-indigo-200 dark:border-indigo-800/80",
     barColor: "#6366f1",
   },
   wildfire: {
     labelMk: "Пожари",
     shortMk: "Пожари",
-    colorHex: "#dc2626",
+    colorHex: "#be123c",
     badgeClass:
-      "bg-red-100 text-red-950 border-red-400 dark:bg-red-950/60 dark:text-red-300 dark:border-red-700",
-    barColor: "#ef4444",
+      "bg-red-50 text-red-900 border-red-300 dark:bg-red-950/45 dark:text-red-200 dark:border-red-800/80",
+    barColor: "#e11d48",
   },
   earthquake: {
     labelMk: "Сеизмичка активност",
     shortMk: "Земјотреси",
-    colorHex: "#e11d48",
+    colorHex: "#be185d",
     badgeClass:
-      "bg-rose-100 text-rose-950 border-rose-400 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700",
-    barColor: "#f43f5e",
+      "bg-pink-50 text-pink-900 border-pink-300 dark:bg-pink-950/45 dark:text-pink-200 dark:border-pink-800/80",
+    barColor: "#db2777",
   },
 };
 
-const DEFAULT_CATEGORY_META = {
+const DEFAULT_CATEGORY_META: CategoryMetaItem = {
   labelMk: "Останато",
   shortMk: "Останато",
   colorHex: "#56797d",
   badgeClass:
-    "bg-slate-200 text-slate-900 border-slate-400 dark:bg-glb-800 dark:text-slate-200 dark:border-glb-600",
+    "bg-slate-100 text-slate-800 border-slate-300 dark:bg-glb-800 dark:text-slate-200 dark:border-glb-700",
   barColor: "#56797d",
 };
 
-export function getCategoryMeta(category: ReportCategory) {
+export function getCategoryMeta(category: ReportCategory): CategoryMetaItem {
   return (
     CATEGORY_META[category] ?? {
       ...DEFAULT_CATEGORY_META,
@@ -98,42 +97,73 @@ export const STATUS_META: Record<
   ongoing: {
     labelMk: "ВО ТЕК",
     badgeClass:
-      "bg-red-600 text-white border-red-700 dark:bg-red-600 dark:text-white dark:border-red-500",
-    indicatorClass: "bg-white",
+      "bg-red-100 text-red-900 border-red-300 dark:bg-red-950/70 dark:text-red-200 dark:border-red-800",
+    indicatorClass: "bg-red-600 dark:bg-red-400",
   },
   scheduled: {
     labelMk: "НАЈАВЕНО",
     badgeClass:
-      "bg-amber-300 text-slate-950 border-amber-600 dark:bg-amber-300 dark:text-slate-950 dark:border-amber-400",
-    indicatorClass: "bg-slate-950",
+      "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/65 dark:text-amber-200 dark:border-amber-800",
+    indicatorClass: "bg-amber-600 dark:bg-amber-400",
   },
   ended: {
     labelMk: "ЗАВРШЕНО",
     badgeClass:
-      "bg-slate-200 text-slate-800 border-slate-400 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600",
-    indicatorClass: "bg-slate-500",
+      "bg-slate-100 text-slate-700 border-slate-300 dark:bg-glb-900 dark:text-slate-400 dark:border-glb-700",
+    indicatorClass: "bg-slate-400 dark:bg-slate-500",
   },
   omitted: {
     labelMk: "МЕРЕЊЕ НА СТАНИЦА",
     badgeClass:
-      "bg-teal-100 text-teal-950 border-teal-500 dark:bg-teal-950/80 dark:text-teal-300 dark:border-teal-700",
-    indicatorClass: "bg-teal-500",
+      "bg-teal-50 text-teal-900 border-teal-300 dark:bg-teal-950/60 dark:text-teal-200 dark:border-teal-800",
+    indicatorClass: "bg-teal-600 dark:bg-teal-400",
   },
   unknown: {
     labelMk: "НЕПОЗНАТО",
     badgeClass:
-      "bg-slate-200 text-slate-700 border-slate-400 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+      "bg-slate-100 text-slate-600 border-slate-300 dark:bg-glb-900 dark:text-slate-400 dark:border-glb-800",
     indicatorClass: "bg-slate-400",
   },
 };
 
+export const MAP_PALETTE = {
+  dark: {
+    canvasBg: "#0b1214",
+    strokeBase: "#2e4145",
+    strokeHighlight: "#f1f5f9",
+    none: "#152124",
+    noneHover: "#1f3035",
+    scheduled: "#856221",
+    scheduledHover: "#a17728",
+    lowOngoing: "#9a471c",
+    lowOngoingHover: "#b85624",
+    highOngoing: "#8f2436",
+    highOngoingHover: "#ad2c41",
+  },
+  light: {
+    canvasBg: "#e2e8f0",
+    strokeBase: "#94a3b8",
+    strokeHighlight: "#0f172a",
+    none: "#f8fafc",
+    noneHover: "#e2e8f0",
+    scheduled: "#f3d078",
+    scheduledHover: "#ecc053",
+    lowOngoing: "#e0824f",
+    lowOngoingHover: "#d46e38",
+    highOngoing: "#c84b59",
+    highOngoingHover: "#b33b48",
+  },
+} as const;
+
 export const SOURCE_LABELS: Record<string, string> = {
   evn: "ЕВН Македонија",
-  "vodovod-skopje": "ЈП Водовод Скопје",
-  moepp: "Министерство за животна средина и просторно планирање",
+  "vodovod-skopje": "ЈП Водовод - Скопје",
+  moepp: "МЖСПП Воздух",
   "sensor-community": "Sensor.Community",
   meteoalarm: "Meteoalarm",
   "emsc-csem": "EMSC Сеизмички портал",
+  "vodovod-kumanovo": "ЈП Водовод - Куманово",
+  "vodovod-prilep": "ЈКП Водовод и Канализација - Прилеп",
 };
 
 export function createEmptyBreakdown(): CategoryBreakdown {

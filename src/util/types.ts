@@ -8,7 +8,7 @@ export type ReportCategory =
   | "earthquake"
   | (string & {});
 
-export type EventCategory = "fuel_price" | "currency_exchange";
+export type EventCategory = "fuel_price" | "currency_exchange" | (string & {});
 
 export type LifecycleStatus =
   | "scheduled"
@@ -45,6 +45,7 @@ export interface MunicipalityDto {
 
 export interface PrecomputedMunicipality
   extends Omit<MunicipalityDto, "boundary"> {
+  slug: string;
   svgPath: string;
   bbox: [number, number, number, number];
   centerSvg: [number, number];
@@ -97,4 +98,19 @@ export interface CategoryBreakdown {
       { ongoing: number; scheduled: number; omitted: number }
     >
   >;
+}
+
+export interface ReportQueryParams {
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: string;
+  status?: string;
+  category?: string;
+  municipalityCode?: string | null;
+  source?: string;
+  search?: string;
+  cursor?: string | null;
+  lat?: number;
+  lng?: number;
+  radius?: number;
 }

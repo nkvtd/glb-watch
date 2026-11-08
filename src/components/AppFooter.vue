@@ -5,15 +5,15 @@
         <div
             class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3"
         >
-            <div class="flex items-center gap-2 text-center sm:text-left">
+            <p class="text-center sm:text-left leading-relaxed">
                 <span class="font-bold text-slate-900 dark:text-slate-100">
                     glb
                 </span>
-                <span>—</span>
+                <span class="mx-1.5">—</span>
                 <span>
                     Следење на најразлични нешта низ Македонија во реално време
                 </span>
-            </div>
+            </p>
 
             <div class="flex items-center gap-5 shrink-0 font-bold">
                 <a

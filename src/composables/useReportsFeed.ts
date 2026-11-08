@@ -1,12 +1,15 @@
 import { ref } from "vue";
-import { fetchFromGlb } from "../util/api";
+import { apiClient } from "../util/api";
 import type {
   PaginatedResponse,
   ReportCategory,
   ReportDto,
 } from "../util/types";
 
-export function useReportsFeed(initialFeed: PaginatedResponse<ReportDto>) {
+export function useReportsFeed(
+  initialFeed: PaginatedResponse<ReportDto>,
+  initialMunicipalityCode: string | null = null,
+) {
   const items = ref<ReportDto[]>(initialFeed.data);
   const nextCursor = ref<string | null>(initialFeed.meta.nextCursor);
   const hasNextPage = ref<boolean>(initialFeed.meta.hasNextPage);
@@ -14,41 +17,33 @@ export function useReportsFeed(initialFeed: PaginatedResponse<ReportDto>) {
 
   const statusFilter = ref("ongoing,scheduled");
   const categoryFilter = ref<ReportCategory | "all">("all");
-  const municipalityFilter = ref<string | null>(null);
+  const municipalityFilter = ref<string | null>(initialMunicipalityCode);
   const sourceFilter = ref("");
   const searchQuery = ref("");
   const sortOption = ref<"startsAt:desc" | "startsAt:asc" | "observedAt:desc">(
     "startsAt:desc",
   );
 
-  function buildQuery(cursor?: string | null): string {
+  async function fetchPage(cursor?: string | null) {
     const [sortBy = "startsAt", sortDirection = "desc"] =
       sortOption.value.split(":");
-    const params = new URLSearchParams({
-      pageSize: "20",
+    return apiClient.getReportsPage({
+      pageSize: 20,
       sortBy,
       sortDirection,
+      status: statusFilter.value,
+      category: categoryFilter.value,
+      municipalityCode: municipalityFilter.value,
+      source: sourceFilter.value,
+      search: searchQuery.value,
+      cursor,
     });
-
-    if (statusFilter.value) params.set("status", statusFilter.value);
-    if (categoryFilter.value !== "all")
-      params.set("category", categoryFilter.value);
-    if (municipalityFilter.value)
-      params.set("municipalityCode", municipalityFilter.value);
-    if (sourceFilter.value) params.set("source", sourceFilter.value);
-    if (searchQuery.value.trim())
-      params.set("search", searchQuery.value.trim());
-    if (cursor) params.set("cursor", cursor);
-
-    return `/reports?${params.toString()}`;
   }
 
   async function refreshFeed() {
     loading.value = true;
     try {
-      const res = await fetchFromGlb<PaginatedResponse<ReportDto>>(
-        buildQuery(null),
-      );
+      const res = await fetchPage(null);
       items.value = res.data;
       nextCursor.value = res.meta.nextCursor;
       hasNextPage.value = res.meta.hasNextPage;
@@ -61,9 +56,7 @@ export function useReportsFeed(initialFeed: PaginatedResponse<ReportDto>) {
     if (!hasNextPage.value || !nextCursor.value || loading.value) return;
     loading.value = true;
     try {
-      const res = await fetchFromGlb<PaginatedResponse<ReportDto>>(
-        buildQuery(nextCursor.value),
-      );
+      const res = await fetchPage(nextCursor.value);
       items.value.push(...res.data);
       nextCursor.value = res.meta.nextCursor;
       hasNextPage.value = res.meta.hasNextPage;

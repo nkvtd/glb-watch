@@ -210,16 +210,6 @@
                                 Крај: {{ formatMacedonianDateTime(rep.endsAt) }}
                             </span>
                         </div>
-
-                        <button
-                            type="button"
-                            class="px-2 py-0.5 bg-slate-100 dark:bg-glb-800 border border-slate-300 dark:border-glb-700 hover:border-glb-500 text-glb-600 dark:text-glb-300 font-bold inline-flex items-center gap-1 cursor-pointer"
-                            @click="$emit('jumpToMap', rep)"
-                        >
-                            <LocateOutline class="w-3.5 h-3.5" />
-                            <span>На мапа</span>
-                            <ArrowUpOutline class="w-3.5 h-3.5" />
-                        </button>
                     </div>
                 </article>
             </div>
@@ -249,11 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ArrowUpOutline,
-  LocateOutline,
-  SearchOutline,
-} from "@vicons/ionicons5";
+import { SearchOutline } from "@vicons/ionicons5";
 import { computed, ref } from "vue";
 import { getCategoryMeta, SOURCE_LABELS, STATUS_META } from "../util/constants";
 import { formatMacedonianDateTime } from "../util/formatters";
@@ -277,7 +263,6 @@ const emit = defineEmits<{
   "update:sortOption": [
     val: "startsAt:desc" | "startsAt:asc" | "observedAt:desc",
   ];
-  jumpToMap: [rep: ReportDto];
   loadMore: [];
 }>();
 
