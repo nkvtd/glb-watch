@@ -21,7 +21,9 @@ export async function data(pageContext: PageContextServer) {
     };
   } catch (error) {
     return {
-      municipalities: [],
+      municipalities: await apiClient
+        .getPrecomputedMunicipalities(headers)
+        .catch(() => []),
       mapReports: [],
       activeEvents: [],
       ssrError:

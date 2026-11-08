@@ -10,6 +10,8 @@ import type {
 } from "./types";
 
 const PUBLIC_FALLBACK_API = "https://glb.nkvtd.com/api";
+const TELEMETRY_TTL_MS = 45_000;
+const MUNICIPALITIES_TTL_MS = 12 * 60 * 60 * 1000;
 
 function getServerEnv(key: string): string | undefined {
   const proc = (
@@ -20,7 +22,19 @@ function getServerEnv(key: string): string | undefined {
 
 export class ApiClient {
   private cachedMunicipalities: PrecomputedMunicipality[] | null = null;
-  private cacheTimestamp = 0;
+  private muniCacheTime = 0;
+  private inFlightMunicipalities: Promise<PrecomputedMunicipality[]> | null =
+    null;
+
+  private cachedMapReports: ReportDto[] | null = null;
+  private mapReportsCacheTime = 0;
+  private inFlightMapReports: Promise<ReportDto[]> | null = null;
+
+  private cachedEvents: EventDto[] | null = null;
+  private eventsCacheTime = 0;
+  private inFlightEvents: Promise<EventDto[]> | null = null;
+
+  private lastWorkingSsrBase: { url: string; timeout: number } | null = null;
 
   getClientBaseUrl(): string {
     const envUrl = import.meta.env.PUBLIC_ENV__API_URL as string | undefined;
@@ -37,13 +51,22 @@ export class ApiClient {
       const internalEnv = getServerEnv("INTERNAL_API_URL");
       const publicEnv = getServerEnv("PUBLIC_ENV__API_URL");
 
-      const candidates = [
+      const baseCandidates = [
+        this.lastWorkingSsrBase,
         internalEnv ? { url: internalEnv, timeout: 1500 } : null,
-        { url: "http://glb-server:8080/api", timeout: 400 },
-        { url: "http://localhost:8080/api", timeout: 400 },
+        { url: "http://glb-server:8080/api", timeout: 350 },
+        { url: "http://localhost:8080/api", timeout: 350 },
         publicEnv ? { url: publicEnv, timeout: 5000 } : null,
         { url: PUBLIC_FALLBACK_API, timeout: 6000 },
       ].filter((c): c is { url: string; timeout: number } => Boolean(c));
+
+      const seenUrls = new Set<string>();
+      const candidates = baseCandidates.filter((c) => {
+        const key = c.url.replace(/\/$/, "");
+        if (seenUrls.has(key)) return false;
+        seenUrls.add(key);
+        return true;
+      });
 
       const headers: Record<string, string> = {
         Accept: "application/json",
@@ -62,10 +85,13 @@ export class ApiClient {
             signal: AbortSignal.timeout(candidate.timeout),
           });
           if (res.ok) {
+            this.lastWorkingSsrBase = candidate;
             return (await res.json()) as T;
           }
         } catch {
-          // Fast fallback to next candidate
+          if (this.lastWorkingSsrBase?.url === candidate.url) {
+            this.lastWorkingSsrBase = null;
+          }
         }
       }
       throw new Error(`Failed to fetch ${cleanPath} from API.`);
@@ -90,30 +116,45 @@ export class ApiClient {
     const now = Date.now();
     if (
       this.cachedMunicipalities &&
-      now - this.cacheTimestamp < 12 * 60 * 60 * 1000
+      now - this.muniCacheTime < MUNICIPALITIES_TTL_MS
     ) {
       return this.cachedMunicipalities;
     }
 
-    const response = await this.request<PaginatedResponse<MunicipalityDto>>(
-      "/municipalities?pageSize=100&includeBoundary=true&sortBy=nameMk&sortDirection=asc",
-      forwardedHeaders,
-    );
+    if (this.inFlightMunicipalities) {
+      return this.inFlightMunicipalities;
+    }
 
-    this.cachedMunicipalities = response.data.map((m) => {
-      const { boundary, ...rest } = m;
-      const { svgPath, bbox } = multiPolygonToSvg(boundary);
-      const centerSvg = projectPoint(m.center.lng, m.center.lat);
-      return {
-        ...rest,
-        slug: toMunicipalitySlug(m.nameEn, m.code),
-        svgPath,
-        bbox,
-        centerSvg,
-      };
-    });
-    this.cacheTimestamp = now;
-    return this.cachedMunicipalities;
+    this.inFlightMunicipalities = (async () => {
+      try {
+        const response = await this.request<PaginatedResponse<MunicipalityDto>>(
+          "/municipalities?pageSize=100&includeBoundary=true&sortBy=nameMk&sortDirection=asc",
+          forwardedHeaders,
+        );
+
+        this.cachedMunicipalities = response.data.map((m) => {
+          const { boundary, ...rest } = m;
+          const { svgPath, bbox } = multiPolygonToSvg(boundary);
+          const centerSvg = projectPoint(m.center.lng, m.center.lat);
+          return {
+            ...rest,
+            slug: toMunicipalitySlug(m.nameEn, m.code),
+            svgPath,
+            bbox,
+            centerSvg,
+          };
+        });
+        this.muniCacheTime = Date.now();
+        return this.cachedMunicipalities;
+      } catch (err) {
+        if (this.cachedMunicipalities) return this.cachedMunicipalities;
+        throw err;
+      } finally {
+        this.inFlightMunicipalities = null;
+      }
+    })();
+
+    return this.inFlightMunicipalities;
   }
 
   async findMunicipalityByParam(
@@ -139,36 +180,67 @@ export class ApiClient {
 
   async getMapTelemetryReports(
     forwardedHeaders?: Record<string, string>,
+    forceRefresh = false,
   ): Promise<ReportDto[]> {
-    const [ongoingRes, scheduledRes, aqRes] = await Promise.all([
-      this.request<PaginatedResponse<ReportDto>>(
-        "/reports?status=ongoing&pageSize=100&sortBy=startsAt&sortDirection=desc",
-        forwardedHeaders,
-      ),
-      this.request<PaginatedResponse<ReportDto>>(
-        "/reports?status=scheduled&pageSize=100&sortBy=startsAt&sortDirection=desc",
-        forwardedHeaders,
-      ),
-      this.request<PaginatedResponse<ReportDto>>(
-        "/reports?category=air_quality&status=ongoing,omitted&pageSize=60&sortBy=startsAt&sortDirection=desc",
-        forwardedHeaders,
-      ),
-    ]);
-
-    const byId = new Map<number, ReportDto>();
-    for (const r of ongoingRes.data) byId.set(r.id, r);
-    for (const r of scheduledRes.data) byId.set(r.id, r);
-
-    const seenAqLocations = new Set<string>();
-    for (const r of aqRes.data) {
-      const key = `${r.source}:${r.locationLabel ?? r.externalId}`;
-      if (!seenAqLocations.has(key)) {
-        seenAqLocations.add(key);
-        byId.set(r.id, r);
-      }
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      this.cachedMapReports &&
+      now - this.mapReportsCacheTime < TELEMETRY_TTL_MS
+    ) {
+      return this.cachedMapReports;
     }
 
-    return Array.from(byId.values());
+    if (this.inFlightMapReports) {
+      return this.inFlightMapReports;
+    }
+
+    this.inFlightMapReports = (async () => {
+      try {
+        const [ongoingRes, scheduledRes, aqRes] = await Promise.all([
+          this.request<PaginatedResponse<ReportDto>>(
+            "/reports?status=ongoing&pageSize=100&sortBy=startsAt&sortDirection=desc",
+            forwardedHeaders,
+          ),
+          this.request<PaginatedResponse<ReportDto>>(
+            "/reports?status=scheduled&pageSize=100&sortBy=startsAt&sortDirection=desc",
+            forwardedHeaders,
+          ),
+          this.request<PaginatedResponse<ReportDto>>(
+            "/reports?category=air_quality&status=ongoing,omitted&pageSize=60&sortBy=startsAt&sortDirection=desc",
+            forwardedHeaders,
+          ).catch(() => ({
+            data: [] as ReportDto[],
+            meta: { nextCursor: null, hasNextPage: false },
+          })),
+        ]);
+
+        const byId = new Map<number, ReportDto>();
+        for (const r of ongoingRes.data) byId.set(r.id, r);
+        for (const r of scheduledRes.data) byId.set(r.id, r);
+
+        const seenAqLocations = new Set<string>();
+        for (const r of aqRes.data) {
+          const key = `${r.source}:${r.locationLabel ?? r.externalId}`;
+          if (!seenAqLocations.has(key)) {
+            seenAqLocations.add(key);
+            byId.set(r.id, r);
+          }
+        }
+
+        const merged = Array.from(byId.values());
+        this.cachedMapReports = merged;
+        this.mapReportsCacheTime = Date.now();
+        return merged;
+      } catch (err) {
+        if (this.cachedMapReports) return this.cachedMapReports;
+        throw err;
+      } finally {
+        this.inFlightMapReports = null;
+      }
+    })();
+
+    return this.inFlightMapReports;
   }
 
   async getReportsPage(
@@ -219,12 +291,39 @@ export class ApiClient {
 
   async getActiveEvents(
     forwardedHeaders?: Record<string, string>,
+    forceRefresh = false,
   ): Promise<EventDto[]> {
-    const res = await this.request<PaginatedResponse<EventDto>>(
-      "/events?status=ongoing&pageSize=10",
-      forwardedHeaders,
-    );
-    return res.data;
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      this.cachedEvents &&
+      now - this.eventsCacheTime < TELEMETRY_TTL_MS
+    ) {
+      return this.cachedEvents;
+    }
+
+    if (this.inFlightEvents) {
+      return this.inFlightEvents;
+    }
+
+    this.inFlightEvents = (async () => {
+      try {
+        const res = await this.request<PaginatedResponse<EventDto>>(
+          "/events?status=ongoing&pageSize=10",
+          forwardedHeaders,
+        );
+        this.cachedEvents = res.data;
+        this.eventsCacheTime = Date.now();
+        return res.data;
+      } catch (err) {
+        if (this.cachedEvents) return this.cachedEvents;
+        throw err;
+      } finally {
+        this.inFlightEvents = null;
+      }
+    })();
+
+    return this.inFlightEvents;
   }
 
   resolveReportMunicipalityCode(

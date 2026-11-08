@@ -17,26 +17,38 @@ export async function data(pageContext: PageContextServer) {
     throw render(404, "Општината не е пронајдена.");
   }
 
-  const [mapReports, activeEvents, initialFeed] = await Promise.all([
-    apiClient.getMapTelemetryReports(headers),
-    apiClient.getActiveEvents(headers),
-    apiClient.getReportsPage(
-      {
-        municipalityCode: target.code,
-        status: "ongoing,scheduled",
-        pageSize: 20,
-        sortBy: "startsAt",
-        sortDirection: "desc",
-      },
-      headers,
-    ),
-  ]);
+  try {
+    const [mapReports, activeEvents] = await Promise.all([
+      apiClient.getMapTelemetryReports(headers),
+      apiClient.getActiveEvents(headers),
+    ]);
 
-  return {
-    municipality: target,
-    municipalities: all,
-    mapReports,
-    activeEvents,
-    initialFeed,
-  };
+    const muniReports = mapReports.filter(
+      (r) =>
+        (r.status === "ongoing" || r.status === "scheduled") &&
+        apiClient.resolveReportMunicipalityCode(r, all) === target.code,
+    );
+
+    return {
+      municipality: target,
+      municipalities: all,
+      mapReports,
+      activeEvents,
+      initialFeed: {
+        data: muniReports,
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+    };
+  } catch {
+    return {
+      municipality: target,
+      municipalities: all,
+      mapReports: [],
+      activeEvents: [],
+      initialFeed: {
+        data: [],
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+    };
+  }
 }

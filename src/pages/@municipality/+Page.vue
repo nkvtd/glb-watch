@@ -201,7 +201,7 @@ import type { Data } from "./+data";
 const ssrData = useData<Data>();
 
 const municipality = computed(() => ssrData.municipality);
-const municipalities = ref(ssrData.municipalities);
+const municipalities = computed(() => ssrData.municipalities);
 const { mapReports, activeEvents } = useLiveTelemetry(
   ssrData.mapReports,
   ssrData.activeEvents,
