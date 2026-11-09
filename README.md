@@ -8,7 +8,7 @@
   </p>
 
   <p align="center">
-    The interactive web monitor for <a href="https://github.com/nkvtd/glb"><strong>glb</strong></a> — visualizing active public utility notices, infrastructure outages, and environmental measurements across all 80 municipalities of Macedonia.
+    The interactive web monitor for <a href="https://github.com/nkvtd/glb"><strong>glb</strong></a> — visualizing active public utility notices, infrastructure outages, environmental measurements, and national indicators across all 80 municipalities of Macedonia.
   </p>
 
   <p align="center">
@@ -17,6 +17,7 @@
     <a href="#overview">Overview</a> •
     <a href="#key-features">Features</a> •
     <a href="#tech-stack">Tech Stack</a> •
+    <a href="#architecture--routing">Architecture</a> •
     <a href="#development-setup">Development</a> •
     <a href="#production-deployment">Deployment</a>
   </p>
@@ -40,6 +41,7 @@
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [Tech Stack](#tech-stack)
+- [Architecture \& Routing](#architecture--routing)
 - [Development Setup](#development-setup)
   - [Prerequisites](#prerequisites)
   - [1. Clone \& Install](#1-clone--install)
@@ -57,20 +59,21 @@
 
 **glb-watch** (`glb::watch`) is the companion web dashboard for the [**glb**](https://github.com/nkvtd/glb) civic telemetry engine. While `glb` scrapes, normalizes, and georeferences infrastructure notices and environmental readings into a PostGIS database, **glb-watch** turns that API into a fast, utilitarian situational monitor publicly hosted at **[https://glb.nkvtd.com](https://glb.nkvtd.com)**.
 
-Designed around a sharp, high-contrast Metro aesthetic, the interface separates live situational awareness from historical exploration:
-- **Above the Fold (Live Situational Monitor):** Displays only currently active and upcoming scheduled disruptions across all 80 municipalities, paired with geocoded incident pins, monitoring station markers, and an interactive local GPS radar.
-- **Below the Fold (Regional Breakdown & Historical Registry):** Provides a statistical region breakdown and a cursor-paginated, full-text searchable registry of all active, scheduled, station-level, and completed records.
+Modeled after utility monitors like `poweroutage.us` and styled with a calibrated, high-contrast Metro aesthetic, **glb-watch** organizes telemetry across two server-side rendered (SSR) tiers:
+1. **National Situational Monitor (`/`):** Displays the 80-municipality choropleth map, live national counters (`Во тек` / `Најавени`), a rotating national newsflash ticker (`ГОРИВА` / `КУРСНА ЛИСТА`), an integrated local GPS radar (`Локален радар`), the top affected municipalities leaderboard, and a searchable 80-municipality directory grouped by statistical region.
+2. **Dedicated Municipality Pages (`/@municipality`, e.g., `/aerodrom`, `/bitola`, `/strumica`):** Each of Macedonia's 80 municipalities has its own indexable SSR route featuring a regional-scoped vector map with geocoded incident/station pins, a statistical region peer switcher, and the full cursor-paginated `Регистар` (`ReportsExplorer`) for that municipality.
 
 ---
 
 ## Key Features
 
-- **Zero-Dependency Vector Choropleth Map:** Renders all 80 municipal `MultiPolygon` boundaries of Macedonia (`SRID 4326`) in native SVG with smooth `requestAnimationFrame` camera transitions, cursor-anchored mouse wheel zoom, two-finger mobile pinch-to-zoom, and a one-click **Град Скопје** camera preset.
-- **SSR Geometry Precomputation & Caching:** Compiles raw GeoJSON boundaries into lightweight SVG paths on the server during SSR and caches them in memory for 12 hours, delivering instant initial page loads with minimal client payload size.
-- **Tactical Local Radar:** Uses browser geolocation and backend-enabled PostGIS spatial queries (`ST_Covers` + `ST_DWithin`) to detect the user's municipality, render an animated sonar sweep on the map, and list all ongoing disruptions within a customizable radius (`500m` to `50km`).
-- **Split-Bucket Telemetry Loading:** Fetches `ongoing`, `scheduled`, and `air_quality` station telemetry in isolated parallel buckets so high volumes of future scheduled outages never crowd out active emergencies on the map.
-- **Statistical Region & Municipality Explorer:** Groups all 80 municipalities across Macedonia's 8 statistical regions with live ongoing/scheduled counters and automatic map-to-table pagination syncing.
-- **Infinite-Scroll Report Registry (`Регистар`):** Supports instant status tab switching, data source filtering, debounced keyword search, and bidirectional "Jump to Map" pin highlighting.
+- **Zero-Dependency 20× GPU Vector Map:** Renders all 80 municipal `MultiPolygon` boundaries (`SRID 4326`) in native SVG using hardware-accelerated `<g>` matrix transforms (`translate` + `scale` up to `20x` zoom), cursor-anchored mouse wheel zoom, two-finger mobile pinch-to-zoom, and a one-click **Град Скопје** camera preset.
+- **Desktop Direct Drill-Down & Mobile Preview Drawer:** Clicking a municipality on desktop navigates directly to `/@municipality` with a tactical radar loading lock; tapping a municipality on mobile slides up a compact preview drawer with live counts and a one-tap link to open the full municipality page.
+- **Unified `ApiClient` & Multi-Tier Caching:** Precomputes and caches municipal SVG paths in memory for 12 hours and caches active telemetry snapshots for 45 seconds with in-flight request deduplication, making municipality-to-municipality navigation instantaneous.
+- **Live 60s Background Revalidation (`useLiveTelemetry`):** Automatically refreshes map telemetry and national events every 60 seconds and on browser tab focus (`visibilitychange`) so open dashboards stay synchronized without manual reloads.
+- **Integrated Tactical Local Radar (`Локален радар`):** Uses browser geolocation and PostGIS spatial queries (`ST_Covers` + `ST_DWithin`) to detect the user's municipality, render an animated sonar sweep on the map, and list ongoing disruptions within preset (`500m`–`10km`) or custom (`50m`–`50,000m`) radii.
+- **Multi-Event Newsflash Bar:** Cycles through active national events (AMSM retail fuel prices and NBRM currency exchange rates) in the top header.
+- **Municipality Report Registry (`Регистар`):** Supports instant status tab switching (`Во тек и најавени`, `Само во тек`, `Најавени`, `Мерни станици`, `Завршени`), upstream source filtering, debounced keyword search, and map-pin-to-card highlighting.
 
 ---
 
@@ -78,12 +81,38 @@ Designed around a sharp, high-contrast Metro aesthetic, the interface separates 
 
 | Category | Technology | Role in `glb-watch` |
 | :--- | :--- | :--- |
-| **Framework & SSR** | Vue, Vike | Server-side rendering (`+data.ts`), client hydration, and filesystem routing. |
-| **Styling & Design** | Tailwind CSS `4.3` (`@tailwindcss/vite`) | Custom `@theme` palette (`glb-50`–`glb-950`), dark/light mode (`@custom-variant dark`), and Metro grid layout. |
-| **GIS & Graphics** | Native SVG + Custom Equirectangular Math | Server-side `MultiPolygon` to SVG path compilation, bounding-box zoom, and vector pin scaling. |
+| **Framework & SSR** | Vue `3.5`, Vike `0.4`, `vike-vue` | Server-side rendering (`+data.ts`), client hydration, and `/@municipality` dynamic routing. |
+| **Styling & Design** | Tailwind CSS `4.3` (`@tailwindcss/vite`) | Custom `@theme` palette (`glb-50`–`glb-950`), calibrated light/dark mode (`MAP_PALETTE`), and Metro grid layout. |
+| **GIS & Graphics** | Native SVG + GPU Matrix Transforms | Server-side `MultiPolygon` to SVG compilation, `20x` matrix zoom, and regional polygon scoping. |
 | **Typography & Icons** | `Ubuntu`, `Ubuntu Mono`, `@vicons/ionicons5` | High-legibility Cyrillic/Latin UI typography, tabular numeric counters, and sharp vector iconography. |
 | **Build & Quality** | Vite `8.x`, TypeScript `6.0`, Biome `2.6` | Fast SSR/client bundling, strict static type checking, and unified linting/formatting. |
 | **Deployment** | Docker Buildx, GitHub Actions, Watchtower | Multi-arch (`linux/amd64`, `linux/arm64`) Alpine container images published to GHCR. |
+
+---
+
+## Architecture & Routing
+
+```text
+┌───────────────────────────────────────────────────────────────────────────┐
+│  glb REST API (http://glb-server:8080/api                                 │
+│  • /api/municipalities  • /api/reports  • /api/events                     │
+└───────────────────────────────────────────────────────────────────────────┘
+                   │                                       ▲
+                   │ 1. ApiClient SSR Fetch (+data.ts)     │ 3. Client Fetch
+                   │    • 12h SVG Geometry Cache           │    • 60s Live Poll
+                   │    • 45s Telemetry Snapshot Cache     │    • Cursor Paging
+                   ▼                                       │    • GPS Radar
+┌──────────────────────────────────────┐                   │
+│  Vike Node.js SSR Server             │───────────────────┴────────────────┐
+│  • "/" (National Monitor)            │ 2. Hydrates Vue 3 Client           │
+│  • "/@municipality" (80      Pages)  │                                    ▼
+└──────────────────────────────────────┘   ┌────────────────────────────────┐
+                                           │  Browser Client                │
+                                           │  • 20x GPU Matrix SVG Map      │
+                                           │  • Mobile Preview Drawer       │
+                                           │  • Integrated Local GPS Radar  │
+                                           └────────────────────────────────┘
+```
 
 ---
 
@@ -144,7 +173,7 @@ The development server will start at `http://localhost:3000`.
 
 ## Production Deployment
 
-In production, **glb-watch** is built into a Node 24 Alpine Docker image published to `ghcr.io/nkvtd/glb-watch:latest` and orchestrated via `docker-compose.yml` alongside `glb-server` on the external `edge-proxy` Docker network.
+In production, **glb-watch** is built into a multi-architecture (`linux/amd64`, `linux/arm64`) Node 24 Alpine Docker image published to `ghcr.io/nkvtd/glb-watch:latest` and orchestrated via `docker-compose.yml` alongside `glb-server` on the external `edge-proxy` Docker network.
 
 ```bash
 # Ensure the shared external network exists
@@ -165,10 +194,10 @@ glb-watch/
 │   ├── logo.svg                    # Standalone glb pigeon emblem (favicon)
 │   └── logo_text.svg               # Horizontal pigeon + glb wordmark
 ├── src/
-│   ├── components/                 # Modular Vue 3 UI components (Map, Header, Explorer, Radar)
-│   ├── composables/                # Reactive state machines (useReportsFeed, useNearbyRadar, useTheme)
-│   ├── pages/                      # Vike SSR routes (+config, +Head, +Layout, index/, _error/)
-│   └── util/                       # API transport, GIS projection math, constants & DTO types
+│   ├── components/                 # Vue 3 UI components (ChoroplethMap, AppHeader, ReportsExplorer, etc.)
+│   ├── composables/                # Reactive state (useLiveTelemetry, useNearbyRadar, useReportsFeed, useTheme)
+│   ├── pages/                      # Vike SSR routes (index/, @municipality/, _error/)
+│   └── util/                       # Unified ApiClient, GIS projection math, palettes & DTO types
 ├── Dockerfile                      # 4-stage Node 24 Alpine production build
 ├── docker-compose.yml              # Production container orchestration
 ├── biome.json                      # Biome linter & formatter configuration
@@ -182,9 +211,8 @@ glb-watch/
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Follow the existing conventions.
-3. Run `npm run lint:fix` and `npx tsc --noEmit` to verify your changes pass **Biome** and strict TypeScript checks.
-4. Submit a Pull Request.
+2. Run `npm run lint:fix` and `npx tsc --noEmit` to verify your changes pass **Biome** and strict TypeScript checks.
+3. Submit a Pull Request.
 
 ---
 
