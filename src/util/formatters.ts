@@ -41,39 +41,27 @@ export function formatRelativeTimeMk(iso: string | null): string {
   return diffMin > 0 ? `за ${days} д` : `пред ${days} д`;
 }
 
-export function formatFuelTicker(ev?: EventDto): string {
-  if (!ev?.description) return "";
-  const matches = [
-    ...ev.description.matchAll(
-      /(ЕУРОСУПЕР БС-95|ЕУРОСУПЕР БС-98|ЕУРОДИЗЕЛ[^a-zA-Z0-9А-Шa-ш]*).*?(\d+(?:\.\d+)?)\s*ден\/л/g,
-    ),
-  ];
-  if (matches.length > 0) {
-    return matches
-      .map((m) => `${m[1]?.replace("ЕУРОСУПЕР ", "")}: ${m[2]} ден/л`)
-      .join("  •  ");
-  }
-  return ev.description;
+export function stripEventBoilerplate(
+  description: string | null | undefined,
+): string {
+  if (!description) return "";
+  const colonIdx = description.indexOf(":");
+  return colonIdx !== -1
+    ? description.slice(colonIdx + 1).trim()
+    : description.trim();
 }
 
 export function formatEventHeadline(ev: EventDto): {
   tag: string;
   text: string;
 } {
-  if (ev.category === "fuel_price") {
-    return {
-      tag: "ГОРИВА",
-      text: formatFuelTicker(ev),
-    };
+  const text = stripEventBoilerplate(ev.description) || ev.title;
+
+  if (ev.category === "fuel_price" || ev.source === "amsm-fuel") {
+    return { tag: "ГОРИВА", text };
   }
-  if (ev.category === "currency_exchange") {
-    return {
-      tag: "НБРМ КУРС",
-      text: ev.description || ev.title,
-    };
+  if (ev.category === "currency_exchange" || ev.source === "nbrm-rates") {
+    return { tag: "КУРСНА ЛИСТА", text };
   }
-  return {
-    tag: "ИНФО",
-    text: ev.description ? `${ev.title}: ${ev.description}` : ev.title,
-  };
+  return { tag: "ИНФО", text };
 }

@@ -20,7 +20,7 @@
 
             <div
                 v-if="headlines.length > 0"
-                class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-glb-900 border border-slate-300 dark:border-glb-800 text-xs font-mono min-w-0 max-w-2xl overflow-hidden"
+                class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 dark:bg-glb-900 border border-slate-300 dark:border-glb-800 text-xs font-mono min-w-0 overflow-hidden"
             >
                 <span
                     class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-glb-500 text-white shrink-0"
@@ -29,6 +29,7 @@
                 </span>
                 <span
                     class="truncate text-slate-800 dark:text-slate-200 font-medium"
+                    :title="currentHeadline?.text"
                 >
                     {{ currentHeadline?.text }}
                 </span>
@@ -39,7 +40,7 @@
                     class="px-1 text-[10px] text-slate-500 hover:text-glb-500 cursor-pointer shrink-0"
                     @click="nextHeadline"
                 >
-                    [{{ activeIdx + 1 }}/{{ headlines.length }} ▸]
+                    [{{ safeIdx + 1 }}/{{ headlines.length }}]
                 </button>
             </div>
 
@@ -72,24 +73,28 @@
 
         <div
             v-if="headlines.length > 0"
-            class="lg:hidden px-4 py-1.5 bg-slate-100 dark:bg-glb-900 border-t border-slate-300 dark:border-glb-800 text-[11px] font-mono flex items-center gap-2 overflow-x-auto whitespace-nowrap"
+            class="lg:hidden px-4 py-1.5 bg-slate-100 dark:bg-glb-900 border-t border-slate-300 dark:border-glb-800 text-[11px] font-mono flex items-center gap-2 min-w-0"
         >
-            <template v-for="(item, idx) in headlines" :key="idx">
-                <span
-                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase bg-glb-500 text-white shrink-0"
-                >
-                    {{ item.tag }}
-                </span>
-                <span class="text-slate-800 dark:text-slate-200">
-                    {{ item.text }}
-                </span>
-                <span
-                    v-if="idx < headlines.length - 1"
-                    class="text-slate-400 px-2"
-                >
-                    ///
-                </span>
-            </template>
+            <span
+                class="px-1.5 py-0.5 text-[10px] font-bold uppercase bg-glb-500 text-white shrink-0"
+            >
+                {{ currentHeadline?.tag }}
+            </span>
+            <span
+                class="text-slate-800 dark:text-slate-200 overflow-x-auto whitespace-nowrap min-w-0 flex-1"
+                :title="currentHeadline?.text"
+            >
+                {{ currentHeadline?.text }}
+            </span>
+            <button
+                v-if="headlines.length > 1"
+                type="button"
+                aria-label="Следна вест"
+                class="px-1 text-[10px] text-slate-500 hover:text-glb-500 cursor-pointer shrink-0"
+                @click="nextHeadline"
+            >
+                [{{ safeIdx + 1 }}/{{ headlines.length }}]
+            </button>
         </div>
     </header>
 </template>
@@ -118,19 +123,29 @@ const navLinks: Array<{ label: string; href: string }> = [
 
 const headlines = computed(() => props.events.map(formatEventHeadline));
 const activeIdx = ref(0);
-const currentHeadline = computed(
-  () => headlines.value[activeIdx.value] ?? headlines.value[0],
+const safeIdx = computed(() =>
+  headlines.value.length > 0 ? activeIdx.value % headlines.value.length : 0,
 );
+const currentHeadline = computed(() => headlines.value[safeIdx.value]);
 
-function nextHeadline() {
+let tickerTimer: ReturnType<typeof setInterval> | null = null;
+
+function advanceHeadline() {
   if (headlines.value.length > 1) {
-    activeIdx.value = (activeIdx.value + 1) % headlines.value.length;
+    activeIdx.value = (safeIdx.value + 1) % headlines.value.length;
   }
 }
 
-let tickerTimer: ReturnType<typeof setInterval> | null = null;
+function nextHeadline() {
+  advanceHeadline();
+  if (tickerTimer) {
+    clearInterval(tickerTimer);
+    tickerTimer = setInterval(advanceHeadline, 8000);
+  }
+}
+
 onMounted(() => {
-  tickerTimer = setInterval(nextHeadline, 8000);
+  tickerTimer = setInterval(advanceHeadline, 8000);
 });
 onUnmounted(() => {
   if (tickerTimer) clearInterval(tickerTimer);
