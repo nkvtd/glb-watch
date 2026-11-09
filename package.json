@@ -20,7 +20,7 @@
     "prod": "docker compose up -d --build"
   },
   "dependencies": {
-    "vike": "^0.4.268",
+    "vike": "^0.4.270",
     "vike-vue": "^0.9.16",
     "vue": "^3.5.44",
     "@vicons/ionicons5": "^0.13.0"
