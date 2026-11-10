@@ -270,8 +270,8 @@ const statusTabs = [
   { label: "Во тек и најавени", value: "ongoing,scheduled" },
   { label: "Само во тек", value: "ongoing" },
   { label: "Најавени", value: "scheduled" },
-  { label: "Мерни станици", value: "ongoing,omitted" },
   { label: "Завршени", value: "ended" },
+  { label: "Останати", value: "omitted" },
 ];
 
 const availableSources = computed(() => {
