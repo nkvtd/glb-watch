@@ -151,7 +151,7 @@
                             :width="pinRadius * 1.8"
                             :height="pinRadius * 1.8"
                             fill="#0d9488"
-                            :stroke="isDark ? '#0b1214' : '#ffffff'"
+                            :stroke="palette.pinStroke"
                             stroke-width="1.2"
                             vector-effect="non-scaling-stroke"
                             class="cursor-pointer"
@@ -163,7 +163,7 @@
                             :cy="r.svgPt[1]"
                             :r="pinRadius * 1.15"
                             :fill="r.status === 'ongoing' ? '#e11d48' : '#d97706'"
-                            :stroke="isDark ? '#0b1214' : '#ffffff'"
+                            :stroke="palette.pinStroke"
                             stroke-width="1.2"
                             vector-effect="non-scaling-stroke"
                             class="cursor-pointer"
@@ -181,7 +181,7 @@
                         text-anchor="middle"
                         dominant-baseline="central"
                         :font-size="labelFontSize"
-                        :fill="isDark ? '#e2e8f0' : '#0f172a'"
+                        :fill="palette.labelFill"
                         :opacity="
                             focusedMunicipalityCode &&
                             focusedMunicipalityCode !== m.code
@@ -455,7 +455,6 @@ const props = withDefaults(
     nearbyCenter?: Coordinates | null;
     nearbyRadiusMeters?: number;
     showPins?: boolean;
-    isDark: boolean;
   }>(),
   {
     mapReports: () => [],
@@ -486,9 +485,7 @@ const cam = reactive({
   ty: 0,
 });
 
-const palette = computed(() =>
-  props.isDark ? MAP_PALETTE.dark : MAP_PALETTE.light,
-);
+const palette = MAP_PALETTE;
 
 /**
  * On a municipality page, only render the polygons belonging to that statistical region!
@@ -911,7 +908,7 @@ function getPolygonFill(code: string): string {
   const stats = props.statsByMunicipality[code];
   const ongoing = stats?.ongoing ?? 0;
   const scheduled = stats?.scheduled ?? 0;
-  const p = palette.value;
+  const p = palette;
 
   if (ongoing === 0 && scheduled === 0) {
     return isHovered ? p.noneHover : p.none;

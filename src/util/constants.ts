@@ -127,32 +127,19 @@ export const STATUS_META: Record<
 };
 
 export const MAP_PALETTE = {
-  dark: {
-    canvasBg: "#0b1214",
-    strokeBase: "#2e4145",
-    strokeHighlight: "#f1f5f9",
-    none: "#152124",
-    noneHover: "#1f3035",
-    scheduled: "#856221",
-    scheduledHover: "#a17728",
-    lowOngoing: "#9a471c",
-    lowOngoingHover: "#b85624",
-    highOngoing: "#8f2436",
-    highOngoingHover: "#ad2c41",
-  },
-  light: {
-    canvasBg: "#e2e8f0",
-    strokeBase: "#94a3b8",
-    strokeHighlight: "#0f172a",
-    none: "#f8fafc",
-    noneHover: "#e2e8f0",
-    scheduled: "#f3d078",
-    scheduledHover: "#ecc053",
-    lowOngoing: "#e0824f",
-    lowOngoingHover: "#d46e38",
-    highOngoing: "#c84b59",
-    highOngoingHover: "#b33b48",
-  },
+  canvasBg: "var(--map-canvas-bg)",
+  strokeBase: "var(--map-stroke-base)",
+  strokeHighlight: "var(--map-stroke-highlight)",
+  pinStroke: "var(--map-pin-stroke)",
+  labelFill: "var(--map-label-fill)",
+  none: "var(--map-none)",
+  noneHover: "var(--map-none-hover)",
+  scheduled: "var(--map-scheduled)",
+  scheduledHover: "var(--map-scheduled-hover)",
+  lowOngoing: "var(--map-low-ongoing)",
+  lowOngoingHover: "var(--map-low-ongoing-hover)",
+  highOngoing: "var(--map-high-ongoing)",
+  highOngoingHover: "var(--map-high-ongoing-hover)",
 } as const;
 
 export const SOURCE_LABELS: Record<string, string> = {

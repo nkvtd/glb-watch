@@ -20,6 +20,40 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --map-canvas-bg: #e2e8f0;
+    --map-stroke-base: #94a3b8;
+    --map-stroke-highlight: #0f172a;
+    --map-pin-stroke: #ffffff;
+    --map-label-fill: #0f172a;
+    --map-none: #f8fafc;
+    --map-none-hover: #e2e8f0;
+    --map-scheduled: #f3d078;
+    --map-scheduled-hover: #ecc053;
+    --map-low-ongoing: #e0824f;
+    --map-low-ongoing-hover: #d46e38;
+    --map-high-ongoing: #c84b59;
+    --map-high-ongoing-hover: #b33b48;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --map-canvas-bg: #0b1214;
+    --map-stroke-base: #2e4145;
+    --map-stroke-highlight: #f1f5f9;
+    --map-pin-stroke: #0b1214;
+    --map-label-fill: #e2e8f0;
+    --map-none: #152124;
+    --map-none-hover: #1f3035;
+    --map-scheduled: #856221;
+    --map-scheduled-hover: #a17728;
+    --map-low-ongoing: #9a471c;
+    --map-low-ongoing-hover: #b85624;
+    --map-high-ongoing: #8f2436;
+    --map-high-ongoing-hover: #ad2c41;
+  }
+
   html {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

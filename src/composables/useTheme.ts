@@ -1,45 +1,24 @@
-import { onMounted, ref } from "vue";
+export const THEME_STORAGE_KEY = "glb-theme";
+export const THEME_COLOR_DARK = "#0f1719";
+export const THEME_COLOR_LIGHT = "#f2f6f7";
 
-const STORAGE_KEY = "glb-theme";
-const isDark = ref(true);
-let initialized = false;
-
-function applyTheme(dark: boolean) {
-  isDark.value = dark;
-  if (typeof document !== "undefined") {
+export function useTheme() {
+  function toggleTheme() {
+    if (typeof document === "undefined") return;
+    const dark = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", dark);
-  }
-  if (typeof localStorage !== "undefined") {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute("content", dark ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
+    }
     try {
-      localStorage.setItem(STORAGE_KEY, dark ? "dark" : "light");
+      localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
     } catch {
       // Ignore storage quota/privacy errors
     }
   }
-}
-
-export function useTheme() {
-  onMounted(() => {
-    if (!initialized && typeof window !== "undefined") {
-      initialized = true;
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const prefersDark = saved ? saved === "dark" : true;
-        applyTheme(prefersDark);
-      } catch {
-        applyTheme(true);
-      }
-    } else if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", isDark.value);
-    }
-  });
-
-  function toggleTheme() {
-    applyTheme(!isDark.value);
-  }
 
   return {
-    isDark,
     toggleTheme,
   };
 }

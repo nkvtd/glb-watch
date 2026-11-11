@@ -4,7 +4,6 @@
     >
         <AppHeader
             :events="activeEvents"
-            :is-dark="isDark"
             @reset="resetHome"
             @toggle-theme="toggleTheme"
         />
@@ -31,7 +30,6 @@
                             :nearby-center="radar.coords.value"
                             :nearby-radius-meters="radar.radiusMeters.value"
                             :show-pins="false"
-                            :is-dark="isDark"
                         />
                     </div>
 
@@ -469,7 +467,7 @@ const mobileLeaderboardOpen = ref(false);
 const radarPresets = [500, 1000, 2500, 5000, 10000];
 
 const radar = useNearbyRadar();
-const { isDark, toggleTheme } = useTheme();
+const { toggleTheme } = useTheme();
 
 function activateRadarTab() {
   sidebarTab.value = "radar";

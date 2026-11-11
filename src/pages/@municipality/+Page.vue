@@ -5,7 +5,6 @@
     >
         <AppHeader
             :events="activeEvents"
-            :is-dark="isDark"
             @toggle-theme="toggleTheme"
         />
 
@@ -81,7 +80,6 @@
                         :map-reports="muniMapReports"
                         :focused-municipality-code="municipality.code"
                         :show-pins="true"
-                        :is-dark="isDark"
                         @select-report="onSelectReportPin"
                     />
                 </div>
@@ -210,7 +208,7 @@ const { mapReports, activeEvents } = useLiveTelemetry(
 const isSwitchingRoute = ref(false);
 const highlightedReportId = ref<number | null>(null);
 const feed = useReportsFeed(ssrData.initialFeed, ssrData.municipality.code);
-const { isDark, toggleTheme } = useTheme();
+const { toggleTheme } = useTheme();
 
 async function switchRoute(url: string) {
   if (isSwitchingRoute.value) return;

@@ -65,8 +65,8 @@
                     class="h-9 w-9 flex items-center justify-center bg-slate-100 dark:bg-glb-900 border border-slate-300 dark:border-glb-700 hover:border-glb-500 cursor-pointer transition-colors"
                     @click="$emit('toggleTheme')"
                 >
-                    <SunnyOutline v-if="isDark" class="w-4 h-4 text-amber-400" />
-                    <MoonOutline v-else class="w-4 h-4 text-slate-700" />
+                    <SunnyOutline class="w-4 h-4 text-amber-400 hidden dark:block" />
+                    <MoonOutline class="w-4 h-4 text-slate-700 block dark:hidden" />
                 </button>
             </div>
         </div>
@@ -108,7 +108,6 @@ import type { EventDto } from "../util/types";
 
 const props = defineProps<{
   events: EventDto[];
-  isDark: boolean;
 }>();
 
 defineEmits<{
