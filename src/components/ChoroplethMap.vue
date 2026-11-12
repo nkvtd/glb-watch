@@ -431,7 +431,7 @@ import {
   RemoveOutline,
 } from "@vicons/ionicons5";
 import { navigate } from "vike/client/router";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { createEmptyBreakdown, MAP_PALETTE } from "../util/constants";
 import {
   MAP_HEIGHT,
@@ -520,6 +520,15 @@ function clampCamera(scale: number, tx: number, ty: number) {
 }
 
 let animFrame: number | null = null;
+function stopAnimation() {
+  if (animFrame !== null) {
+    cancelAnimationFrame(animFrame);
+    animFrame = null;
+  }
+}
+
+onUnmounted(() => stopAnimation());
+
 function animateCamera(target: { scale: number; tx: number; ty: number }) {
   if (animFrame) cancelAnimationFrame(animFrame);
   const clamped = clampCamera(target.scale, target.tx, target.ty);

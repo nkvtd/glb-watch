@@ -5,31 +5,11 @@ export type Data = Awaited<ReturnType<typeof data>>;
 
 export async function data(pageContext: PageContextServer) {
   const headers = pageContext.headers ?? undefined;
+  const [municipalities, mapReports, activeEvents] = await Promise.all([
+    apiClient.getPrecomputedMunicipalities(headers).catch(() => []),
+    apiClient.getMapTelemetryReports(headers).catch(() => []),
+    apiClient.getActiveEvents(headers).catch(() => []),
+  ]);
 
-  try {
-    const [municipalities, mapReports, activeEvents] = await Promise.all([
-      apiClient.getPrecomputedMunicipalities(headers),
-      apiClient.getMapTelemetryReports(headers),
-      apiClient.getActiveEvents(headers),
-    ]);
-
-    return {
-      municipalities,
-      mapReports,
-      activeEvents,
-      ssrError: null as string | null,
-    };
-  } catch (error) {
-    return {
-      municipalities: await apiClient
-        .getPrecomputedMunicipalities(headers)
-        .catch(() => []),
-      mapReports: [],
-      activeEvents: [],
-      ssrError:
-        error instanceof Error
-          ? error.message
-          : "Неуспешно поврзување со glb API.",
-    };
-  }
+  return { municipalities, mapReports, activeEvents };
 }

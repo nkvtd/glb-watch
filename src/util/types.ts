@@ -46,6 +46,7 @@ export interface MunicipalityDto {
 export interface PrecomputedMunicipality
   extends Omit<MunicipalityDto, "boundary"> {
   slug: string;
+  nameMkUpper: string;
   svgPath: string;
   bbox: [number, number, number, number];
   centerSvg: [number, number];
@@ -92,12 +93,6 @@ export interface CategoryBreakdown {
   ongoing: number;
   scheduled: number;
   omitted: number;
-  byCategory: Partial<
-    Record<
-      ReportCategory,
-      { ongoing: number; scheduled: number; omitted: number }
-    >
-  >;
 }
 
 export interface ReportQueryParams {

@@ -1,6 +1,7 @@
 import { render } from "vike/abort";
 import type { PageContextServer } from "vike/types";
 import { apiClient } from "../../util/api";
+import { isActiveReport } from "../../util/telemetry";
 
 export type Data = Awaited<ReturnType<typeof data>>;
 
@@ -17,38 +18,25 @@ export async function data(pageContext: PageContextServer) {
     throw render(404, "Општината не е пронајдена.");
   }
 
-  try {
-    const [mapReports, activeEvents] = await Promise.all([
-      apiClient.getMapTelemetryReports(headers),
-      apiClient.getActiveEvents(headers),
-    ]);
+  const [mapReports, activeEvents] = await Promise.all([
+    apiClient.getMapTelemetryReports(headers).catch(() => []),
+    apiClient.getActiveEvents(headers).catch(() => []),
+  ]);
 
-    const muniReports = mapReports.filter(
-      (r) =>
-        (r.status === "ongoing" || r.status === "scheduled") &&
-        apiClient.resolveReportMunicipalityCode(r, all) === target.code,
-    );
+  const muniReports = mapReports.filter(
+    (r) =>
+      isActiveReport(r) &&
+      apiClient.resolveReportMunicipalityCode(r, all) === target.code,
+  );
 
-    return {
-      municipality: target,
-      municipalities: all,
-      mapReports,
-      activeEvents,
-      initialFeed: {
-        data: muniReports,
-        meta: { nextCursor: null, hasNextPage: false },
-      },
-    };
-  } catch {
-    return {
-      municipality: target,
-      municipalities: all,
-      mapReports: [],
-      activeEvents: [],
-      initialFeed: {
-        data: [],
-        meta: { nextCursor: null, hasNextPage: false },
-      },
-    };
-  }
+  return {
+    municipality: target,
+    municipalities: all,
+    mapReports,
+    activeEvents,
+    initialFeed: {
+      data: muniReports,
+      meta: { nextCursor: null, hasNextPage: false },
+    },
+  };
 }

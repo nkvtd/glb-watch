@@ -141,6 +141,7 @@ export class ApiClient {
           return {
             ...rest,
             slug: toMunicipalitySlug(m.nameEn, m.code),
+            nameMkUpper: m.nameMk.trim().toUpperCase(),
             svgPath,
             bbox,
             centerSvg,
@@ -215,11 +216,9 @@ export class ApiClient {
 
   async getMapTelemetryReports(
     forwardedHeaders?: Record<string, string>,
-    forceRefresh = false,
   ): Promise<ReportDto[]> {
     const now = Date.now();
     if (
-      !forceRefresh &&
       this.cachedMapReports &&
       now - this.mapReportsCacheTime < TELEMETRY_TTL_MS
     ) {
@@ -323,14 +322,9 @@ export class ApiClient {
 
   async getActiveEvents(
     forwardedHeaders?: Record<string, string>,
-    forceRefresh = false,
   ): Promise<EventDto[]> {
     const now = Date.now();
-    if (
-      !forceRefresh &&
-      this.cachedEvents &&
-      now - this.eventsCacheTime < TELEMETRY_TTL_MS
-    ) {
+    if (this.cachedEvents && now - this.eventsCacheTime < TELEMETRY_TTL_MS) {
       return this.cachedEvents;
     }
 
@@ -360,7 +354,7 @@ export class ApiClient {
 
   resolveReportMunicipalityCode(
     report: ReportDto,
-    municipalities: PrecomputedMunicipality[],
+    municipalities: readonly PrecomputedMunicipality[],
   ): string | null {
     if (report.municipalityCode) return report.municipalityCode;
 
@@ -369,7 +363,7 @@ export class ApiClient {
     if (!haystack.trim()) return null;
 
     for (const m of municipalities) {
-      const nameMk = m.nameMk.trim().toUpperCase();
+      const nameMk = m.nameMkUpper;
       if (nameMk && haystack.includes(nameMk)) {
         return m.code;
       }

@@ -165,15 +165,15 @@
 
                             <span
                                 class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono font-bold border"
-                                :class="STATUS_META[rep.status].badgeClass"
+                                :class="getStatusMeta(rep.status).badgeClass"
                             >
                                 <span
                                     class="w-1.5 h-1.5"
                                     :class="
-                                        STATUS_META[rep.status].indicatorClass
+                                        getStatusMeta(rep.status).indicatorClass
                                     "
                                 ></span>
-                                {{ STATUS_META[rep.status].labelMk }}
+                                {{ getStatusMeta(rep.status).labelMk }}
                             </span>
                         </div>
 
@@ -241,7 +241,11 @@
 <script setup lang="ts">
 import { SearchOutline } from "@vicons/ionicons5";
 import { computed, ref } from "vue";
-import { getCategoryMeta, SOURCE_LABELS, STATUS_META } from "../util/constants";
+import {
+  getCategoryMeta,
+  getStatusMeta,
+  SOURCE_LABELS,
+} from "../util/constants";
 import { formatMacedonianDateTime } from "../util/formatters";
 import type { ReportDto } from "../util/types";
 

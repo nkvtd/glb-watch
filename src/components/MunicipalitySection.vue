@@ -193,6 +193,7 @@
 import { ChevronBackOutline, ChevronForwardOutline } from "@vicons/ionicons5";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { createEmptyBreakdown } from "../util/constants";
+import { compareMunicipalityRows } from "../util/telemetry";
 import type { CategoryBreakdown, PrecomputedMunicipality } from "../util/types";
 
 const props = defineProps<{
@@ -273,17 +274,16 @@ const filteredRows = computed(() => {
       stats: props.statsByMunicipality[m.code] ?? createEmptyBreakdown(),
     }))
     .filter((r) => !onlyActive.value || r.stats.ongoing + r.stats.scheduled > 0)
-    .sort(
-      (a, b) =>
-        b.stats.ongoing - a.stats.ongoing ||
-        b.stats.scheduled - a.stats.scheduled ||
-        a.m.nameMk.localeCompare(b.m.nameMk, "mk"),
-    );
+    .sort(compareMunicipalityRows);
 });
 
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)),
 );
+
+watch(totalPages, (max) => {
+  if (currentPage.value > max) currentPage.value = max;
+});
 
 const pagedRows = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;

@@ -345,12 +345,12 @@
                                             <span
                                                 class="px-1.5 py-0.5 text-[10px] font-mono font-bold border"
                                                 :class="
-                                                    STATUS_META[rep.status]
+                                                    getStatusMeta(rep.status)
                                                         .badgeClass
                                                 "
                                             >
                                                 {{
-                                                    STATUS_META[rep.status]
+                                                    getStatusMeta(rep.status)
                                                         .labelMk
                                                 }}
                                             </span>
@@ -443,12 +443,17 @@ import MunicipalitySection from "../../components/MunicipalitySection.vue";
 import { useLiveTelemetry } from "../../composables/useLiveTelemetry";
 import { useNearbyRadar } from "../../composables/useNearbyRadar";
 import { useTheme } from "../../composables/useTheme";
-import { apiClient } from "../../util/api";
 import {
   createEmptyBreakdown,
   getCategoryMeta,
-  STATUS_META,
+  getStatusMeta,
 } from "../../util/constants";
+import {
+  aggregateStatsByMunicipality,
+  compareMunicipalityRows,
+  countActiveByCategory,
+  isActiveReport,
+} from "../../util/telemetry";
 import type { CategoryBreakdown, ReportCategory } from "../../util/types";
 import type { Data } from "./+data";
 
@@ -513,21 +518,12 @@ function resetHome() {
   radar.closeRadar();
 }
 
-const nationalCategoryCounts = computed(() => {
-  const counts: Record<string, number> = {};
-  for (const r of mapReports.value) {
-    if (r.status === "ongoing" || r.status === "scheduled") {
-      counts[r.category] = (counts[r.category] || 0) + 1;
-    }
-  }
-  return counts;
-});
+const nationalCategoryCounts = computed(() =>
+  countActiveByCategory(mapReports.value),
+);
 
 const totalActiveIncidentCount = computed(
-  () =>
-    mapReports.value.filter(
-      (r) => r.status === "ongoing" || r.status === "scheduled",
-    ).length,
+  () => mapReports.value.filter(isActiveReport).length,
 );
 
 const filteredMapReports = computed(() =>
@@ -536,38 +532,13 @@ const filteredMapReports = computed(() =>
     : mapReports.value.filter((r) => r.category === selectedCategory.value),
 );
 
-const statsByMunicipality = computed<Record<string, CategoryBreakdown>>(() => {
-  const map: Record<string, CategoryBreakdown> = {};
-  for (const r of filteredMapReports.value) {
-    const code = apiClient.resolveReportMunicipalityCode(
-      r,
-      municipalities.value,
-    );
-    if (!code) continue;
-
-    let entry = map[code];
-    if (!entry) {
-      entry = createEmptyBreakdown();
-      map[code] = entry;
-    }
-    let catBucket = entry.byCategory[r.category];
-    if (!catBucket) {
-      catBucket = { ongoing: 0, scheduled: 0, omitted: 0 };
-      entry.byCategory[r.category] = catBucket;
-    }
-    if (r.status === "ongoing") {
-      entry.ongoing += 1;
-      catBucket.ongoing += 1;
-    } else if (r.status === "scheduled") {
-      entry.scheduled += 1;
-      catBucket.scheduled += 1;
-    } else if (r.status === "omitted") {
-      entry.omitted += 1;
-      catBucket.omitted += 1;
-    }
-  }
-  return map;
-});
+const statsByMunicipality = computed<Record<string, CategoryBreakdown>>(() =>
+  aggregateStatsByMunicipality(
+    mapReports.value,
+    municipalities.value,
+    selectedCategory.value,
+  ),
+);
 
 const ongoingNationalCount = computed(
   () => filteredMapReports.value.filter((r) => r.status === "ongoing").length,
@@ -584,12 +555,7 @@ const topMunicipalities = computed(() => {
       m,
       stats: statsByMunicipality.value[m.code] ?? createEmptyBreakdown(),
     }))
-    .sort(
-      (a, b) =>
-        b.stats.ongoing - a.stats.ongoing ||
-        b.stats.scheduled - a.stats.scheduled ||
-        a.m.nameMk.localeCompare(b.m.nameMk, "mk"),
-    )
+    .sort(compareMunicipalityRows)
     .slice(0, 15);
 });
 </script>

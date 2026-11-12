@@ -126,6 +126,10 @@ export const STATUS_META: Record<
   },
 };
 
+export function getStatusMeta(status: LifecycleStatus) {
+  return STATUS_META[status] ?? STATUS_META.unknown;
+}
+
 export const MAP_PALETTE = {
   canvasBg: "var(--map-canvas-bg)",
   strokeBase: "var(--map-stroke-base)",
@@ -158,6 +162,5 @@ export function createEmptyBreakdown(): CategoryBreakdown {
     ongoing: 0,
     scheduled: 0,
     omitted: 0,
-    byCategory: {},
   };
 }

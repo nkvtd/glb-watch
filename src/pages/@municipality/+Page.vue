@@ -189,6 +189,11 @@ import { useReportsFeed } from "../../composables/useReportsFeed";
 import { useTheme } from "../../composables/useTheme";
 import { apiClient } from "../../util/api";
 import { createEmptyBreakdown } from "../../util/constants";
+import {
+  aggregateStatsByMunicipality,
+  compareMunicipalityRows,
+  countActiveByCategory,
+} from "../../util/telemetry";
 import type {
   CategoryBreakdown,
   ReportCategory,
@@ -249,44 +254,13 @@ function handleGlobalClick(e: MouseEvent) {
   }
 }
 
-const statsByMunicipality = computed<Record<string, CategoryBreakdown>>(() => {
-  const map: Record<string, CategoryBreakdown> = {};
-  for (const r of mapReports.value) {
-    if (
-      feed.categoryFilter.value !== "all" &&
-      r.category !== feed.categoryFilter.value
-    ) {
-      continue;
-    }
-    const code = apiClient.resolveReportMunicipalityCode(
-      r,
-      municipalities.value,
-    );
-    if (!code) continue;
-
-    let entry = map[code];
-    if (!entry) {
-      entry = createEmptyBreakdown();
-      map[code] = entry;
-    }
-    let catBucket = entry.byCategory[r.category];
-    if (!catBucket) {
-      catBucket = { ongoing: 0, scheduled: 0, omitted: 0 };
-      entry.byCategory[r.category] = catBucket;
-    }
-    if (r.status === "ongoing") {
-      entry.ongoing += 1;
-      catBucket.ongoing += 1;
-    } else if (r.status === "scheduled") {
-      entry.scheduled += 1;
-      catBucket.scheduled += 1;
-    } else if (r.status === "omitted") {
-      entry.omitted += 1;
-      catBucket.omitted += 1;
-    }
-  }
-  return map;
-});
+const statsByMunicipality = computed<Record<string, CategoryBreakdown>>(() =>
+  aggregateStatsByMunicipality(
+    mapReports.value,
+    municipalities.value,
+    feed.categoryFilter.value,
+  ),
+);
 
 const muniStats = computed(
   () =>
@@ -294,22 +268,13 @@ const muniStats = computed(
     createEmptyBreakdown(),
 );
 
-const muniCategoryCounts = computed(() => {
-  const counts: Record<string, number> = {};
-  for (const r of mapReports.value) {
-    const code = apiClient.resolveReportMunicipalityCode(
-      r,
-      municipalities.value,
-    );
-    if (
-      code === municipality.value.code &&
-      (r.status === "ongoing" || r.status === "scheduled")
-    ) {
-      counts[r.category] = (counts[r.category] || 0) + 1;
-    }
-  }
-  return counts;
-});
+const muniCategoryCounts = computed(() =>
+  countActiveByCategory(
+    mapReports.value,
+    municipalities.value,
+    municipality.value.code,
+  ),
+);
 
 const muniMapReports = computed(() =>
   mapReports.value.filter((r) => {
@@ -334,12 +299,7 @@ const regionalPeers = computed(() =>
       m,
       stats: statsByMunicipality.value[m.code] ?? createEmptyBreakdown(),
     }))
-    .sort(
-      (a, b) =>
-        b.stats.ongoing - a.stats.ongoing ||
-        b.stats.scheduled - a.stats.scheduled ||
-        a.m.nameMk.localeCompare(b.m.nameMk, "mk"),
-    ),
+    .sort(compareMunicipalityRows),
 );
 
 const displayedFeedItems = computed(() => {

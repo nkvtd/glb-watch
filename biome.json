@@ -16,6 +16,22 @@
           }
         }
       }
+    },
+    {
+      "includes": [
+        "**/*.vue"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConst": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
     }
   ],
   "files": {
@@ -43,12 +59,7 @@
     "rules": {
       "preset": "recommended",
       "style": {
-        "useConst": "off",
         "useImportType": "off"
-      },
-      "correctness": {
-        "noUnusedVariables": "off",
-        "noUnusedImports": "off"
       }
     }
   },

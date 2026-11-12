@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { onScopeDispose, ref } from "vue";
 import { apiClient } from "../util/api";
 import type {
   PaginatedResponse,
@@ -24,6 +24,7 @@ export function useReportsFeed(
     "startsAt:desc",
   );
   let requestSeq = 0;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function fetchPage(cursor?: string | null) {
     const [sortBy = "startsAt", sortDirection = "desc"] =
@@ -51,6 +52,8 @@ export function useReportsFeed(
         nextCursor.value = res.meta.nextCursor;
         hasNextPage.value = res.meta.hasNextPage;
       }
+    } catch {
+      // Keep the current feed when a refresh fails.
     } finally {
       if (seq === requestSeq) loading.value = false;
     }
@@ -67,6 +70,8 @@ export function useReportsFeed(
         nextCursor.value = res.meta.nextCursor;
         hasNextPage.value = res.meta.hasNextPage;
       }
+    } catch {
+      // Keep the current feed when loading another page fails.
     } finally {
       if (seq === requestSeq) loading.value = false;
     }
@@ -74,19 +79,24 @@ export function useReportsFeed(
 
   function resetFeed(nextFeed: PaginatedResponse<ReportDto>) {
     requestSeq++;
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = null;
     loading.value = false;
-    items.value = nextFeed.data;
+    items.value = [...nextFeed.data];
     nextCursor.value = nextFeed.meta.nextCursor;
     hasNextPage.value = nextFeed.meta.hasNextPage;
   }
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   function debouncedRefresh() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       refreshFeed();
     }, 280);
   }
+
+  onScopeDispose(() => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+  });
 
   return {
     items,

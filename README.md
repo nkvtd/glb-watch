@@ -73,7 +73,7 @@ Modeled after utility monitors like `poweroutage.us` and styled with a calibrate
 - **Live 60s Background Revalidation (`useLiveTelemetry`):** Automatically refreshes map telemetry and national events every 60 seconds and on browser tab focus (`visibilitychange`) so open dashboards stay synchronized without manual reloads.
 - **Integrated Tactical Local Radar (`Локален радар`):** Uses browser geolocation and PostGIS spatial queries (`ST_Covers` + `ST_DWithin`) to detect the user's municipality, render an animated sonar sweep on the map, and list ongoing disruptions within preset (`500m`–`10km`) or custom (`50m`–`50,000m`) radii.
 - **Multi-Event Newsflash Bar:** Cycles through active national events (AMSM retail fuel prices and NBRM currency exchange rates) in the top header.
-- **Municipality Report Registry (`Регистар`):** Supports instant status tab switching (`Во тек и најавени`, `Само во тек`, `Најавени`, `Мерни станици`, `Завршени`), upstream source filtering, debounced keyword search, and map-pin-to-card highlighting.
+- **Municipality Report Registry (`Регистар`):** Supports instant status tab switching (`Во тек и најавени`, `Само во тек`, `Најавени`, `Останати`, `Завршени`), upstream source filtering, debounced keyword search, and map-pin-to-card highlighting.
 
 ---
 
@@ -94,7 +94,7 @@ Modeled after utility monitors like `poweroutage.us` and styled with a calibrate
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────┐
-│  glb REST API (http://glb-server:8080/api                                 │
+│  glb REST API (http://glb-server:8080/api)                                │
 │  • /api/municipalities  • /api/reports  • /api/events                     │
 └───────────────────────────────────────────────────────────────────────────┘
                    │                                       ▲
@@ -146,7 +146,7 @@ PORT=3000
 INTERNAL_API_URL=http://glb-server:8080/api
 
 # Client-side public API URL exposed to the browser (Vike/Vite PUBLIC_ENV__ prefix)
-PUBLIC_ENV__API_URL=[https://glb.nkvtd.com/api](https://glb.nkvtd.com/api)
+PUBLIC_ENV__API_URL=https://glb.nkvtd.com/api
 ```
 
 ### 3. Run in Development Mode
@@ -197,7 +197,7 @@ glb-watch/
 │   ├── components/                 # Vue 3 UI components (ChoroplethMap, AppHeader, ReportsExplorer, etc.)
 │   ├── composables/                # Reactive state (useLiveTelemetry, useNearbyRadar, useReportsFeed, useTheme)
 │   ├── pages/                      # Vike SSR routes (index/, @municipality/, _error/)
-│   └── util/                       # Unified ApiClient, GIS projection math, palettes & DTO types
+│   └── util/                       # Unified ApiClient, telemetry aggregation, GIS projection math & DTOs
 ├── Dockerfile                      # 4-stage Node 24 Alpine production build
 ├── docker-compose.yml              # Production container orchestration
 ├── biome.json                      # Biome linter & formatter configuration

@@ -12,6 +12,7 @@ export function useNearbyRadar() {
   const municipality = ref<MunicipalityDto | null>(null);
   const municipalitySlug = ref<string | null>(null);
   const reports = ref<ReportDto[]>([]);
+  let requestSeq = 0;
 
   function clampRadius(val: number): number {
     if (!Number.isFinite(val)) return 2500;
@@ -20,6 +21,7 @@ export function useNearbyRadar() {
 
   async function fetchSpatialData() {
     if (!coords.value) return;
+    const seq = ++requestSeq;
     const { lat, lng } = coords.value;
     const safeRadius = clampRadius(radiusMeters.value);
     radiusMeters.value = safeRadius;
@@ -29,7 +31,7 @@ export function useNearbyRadar() {
     try {
       if (!municipality.value) {
         const [muni, repRes] = await Promise.all([
-          apiClient.getMunicipalityByCoords(lat, lng),
+          apiClient.getMunicipalityByCoords(lat, lng).catch(() => null),
           apiClient.getReportsPage({
             lat,
             lng,
@@ -38,11 +40,13 @@ export function useNearbyRadar() {
             pageSize: 50,
           }),
         ]);
-        municipality.value = muni;
-        municipalitySlug.value = muni
-          ? toMunicipalitySlug(muni.nameEn, muni.code)
-          : null;
-        reports.value = repRes.data;
+        if (seq === requestSeq) {
+          municipality.value = muni;
+          municipalitySlug.value = muni
+            ? toMunicipalitySlug(muni.nameEn, muni.code)
+            : null;
+          reports.value = repRes.data;
+        }
       } else {
         const repRes = await apiClient.getReportsPage({
           lat,
@@ -51,13 +55,15 @@ export function useNearbyRadar() {
           status: "ongoing",
           pageSize: 50,
         });
-        reports.value = repRes.data;
+        if (seq === requestSeq) reports.value = repRes.data;
       }
     } catch (e) {
-      error.value =
-        e instanceof Error ? e.message : "Грешка при пребарување во близина.";
+      if (seq === requestSeq) {
+        error.value =
+          e instanceof Error ? e.message : "Грешка при пребарување во близина.";
+      }
     } finally {
-      loading.value = false;
+      if (seq === requestSeq) loading.value = false;
     }
   }
 
@@ -70,9 +76,11 @@ export function useNearbyRadar() {
     loading.value = true;
     error.value = null;
     active.value = true;
+    const locateSeq = ++requestSeq;
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        if (locateSeq !== requestSeq || !active.value) return;
         coords.value = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -81,6 +89,7 @@ export function useNearbyRadar() {
         await fetchSpatialData();
       },
       () => {
+        if (locateSeq !== requestSeq || !active.value) return;
         loading.value = false;
         error.value =
           "Пристапот до локација беше одбиен. Овозможете локација во прелистувачот.";
@@ -94,6 +103,7 @@ export function useNearbyRadar() {
   }
 
   function closeRadar() {
+    requestSeq++;
     active.value = false;
     loading.value = false;
     error.value = null;

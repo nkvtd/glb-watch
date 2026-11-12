@@ -9,12 +9,9 @@ export function useLiveTelemetry(
 ) {
   const mapReports = ref<ReportDto[]>(initialReports);
   const activeEvents = ref<EventDto[]>(initialEvents);
-  const refreshing = ref(false);
   let timer: ReturnType<typeof setInterval> | null = null;
 
   async function refreshNow() {
-    if (refreshing.value) return;
-    refreshing.value = true;
     try {
       const [reports, events] = await Promise.all([
         apiClient.getMapTelemetryReports(),
@@ -24,8 +21,6 @@ export function useLiveTelemetry(
       activeEvents.value = events;
     } catch {
       // Keep existing state on transient network errors
-    } finally {
-      refreshing.value = false;
     }
   }
 
@@ -53,7 +48,5 @@ export function useLiveTelemetry(
   return {
     mapReports,
     activeEvents,
-    refreshing,
-    refreshNow,
   };
 }
