@@ -23,6 +23,7 @@ export function useReportsFeed(
   const sortOption = ref<"startsAt:desc" | "startsAt:asc" | "observedAt:desc">(
     "startsAt:desc",
   );
+  let requestSeq = 0;
 
   async function fetchPage(cursor?: string | null) {
     const [sortBy = "startsAt", sortDirection = "desc"] =
@@ -41,28 +42,42 @@ export function useReportsFeed(
   }
 
   async function refreshFeed() {
+    const seq = ++requestSeq;
     loading.value = true;
     try {
       const res = await fetchPage(null);
-      items.value = res.data;
-      nextCursor.value = res.meta.nextCursor;
-      hasNextPage.value = res.meta.hasNextPage;
+      if (seq === requestSeq) {
+        items.value = res.data;
+        nextCursor.value = res.meta.nextCursor;
+        hasNextPage.value = res.meta.hasNextPage;
+      }
     } finally {
-      loading.value = false;
+      if (seq === requestSeq) loading.value = false;
     }
   }
 
   async function loadMore() {
     if (!hasNextPage.value || !nextCursor.value || loading.value) return;
+    const seq = ++requestSeq;
     loading.value = true;
     try {
       const res = await fetchPage(nextCursor.value);
-      items.value.push(...res.data);
-      nextCursor.value = res.meta.nextCursor;
-      hasNextPage.value = res.meta.hasNextPage;
+      if (seq === requestSeq) {
+        items.value.push(...res.data);
+        nextCursor.value = res.meta.nextCursor;
+        hasNextPage.value = res.meta.hasNextPage;
+      }
     } finally {
-      loading.value = false;
+      if (seq === requestSeq) loading.value = false;
     }
+  }
+
+  function resetFeed(nextFeed: PaginatedResponse<ReportDto>) {
+    requestSeq++;
+    loading.value = false;
+    items.value = nextFeed.data;
+    nextCursor.value = nextFeed.meta.nextCursor;
+    hasNextPage.value = nextFeed.meta.hasNextPage;
   }
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -85,6 +100,7 @@ export function useReportsFeed(
     sortOption,
     refreshFeed,
     loadMore,
+    resetFeed,
     debouncedRefresh,
   };
 }

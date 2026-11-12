@@ -225,8 +225,18 @@ watch(
   (newCode) => {
     isSwitchingRoute.value = false;
     feed.municipalityFilter.value = newCode;
-    feed.items.value = ssrData.initialFeed.data;
     highlightedReportId.value = null;
+    if (
+      feed.statusFilter.value !== "ongoing,scheduled" ||
+      feed.categoryFilter.value !== "all" ||
+      feed.sourceFilter.value !== "" ||
+      feed.searchQuery.value !== "" ||
+      feed.sortOption.value !== "startsAt:desc"
+    ) {
+      feed.refreshFeed();
+    } else {
+      feed.resetFeed(ssrData.initialFeed);
+    }
   },
 );
 

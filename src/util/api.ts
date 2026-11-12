@@ -12,6 +12,8 @@ import type {
 const PUBLIC_FALLBACK_API = "https://glb.nkvtd.com/api";
 const TELEMETRY_TTL_MS = 45_000;
 const MUNICIPALITIES_TTL_MS = 12 * 60 * 60 * 1000;
+const REPORTS_PAGE_SIZE = 100;
+const MAX_REPORT_PAGES = 10;
 
 function getServerEnv(key: string): string | undefined {
   const proc = (
@@ -178,6 +180,39 @@ export class ApiClient {
     return { target, all };
   }
 
+  private async fetchAllReportPages(
+    basePath: string,
+    forwardedHeaders?: Record<string, string>,
+  ): Promise<ReportDto[]> {
+    const rows: ReportDto[] = [];
+    let cursor: string | null = null;
+    const separator = basePath.includes("?") ? "&" : "?";
+
+    for (let page = 0; page < MAX_REPORT_PAGES; page++) {
+      const cursorParam: string = cursor
+        ? `&cursor=${encodeURIComponent(cursor)}`
+        : "";
+      try {
+        const res: PaginatedResponse<ReportDto> = await this.request<
+          PaginatedResponse<ReportDto>
+        >(
+          `${basePath}${separator}pageSize=${REPORTS_PAGE_SIZE}${cursorParam}`,
+          forwardedHeaders,
+        );
+        rows.push(...res.data);
+        if (!res.meta?.hasNextPage || !res.meta?.nextCursor) {
+          break;
+        }
+        cursor = res.meta.nextCursor;
+      } catch (err) {
+        if (page === 0) throw err;
+        break;
+      }
+    }
+
+    return rows;
+  }
+
   async getMapTelemetryReports(
     forwardedHeaders?: Record<string, string>,
     forceRefresh = false,
@@ -197,30 +232,27 @@ export class ApiClient {
 
     this.inFlightMapReports = (async () => {
       try {
-        const [ongoingRes, scheduledRes, aqRes] = await Promise.all([
-          this.request<PaginatedResponse<ReportDto>>(
-            "/reports?status=ongoing&pageSize=100&sortBy=startsAt&sortDirection=desc",
+        const [ongoing, scheduled, aq] = await Promise.all([
+          this.fetchAllReportPages(
+            "/reports?status=ongoing&sortBy=startsAt&sortDirection=desc",
             forwardedHeaders,
           ),
-          this.request<PaginatedResponse<ReportDto>>(
-            "/reports?status=scheduled&pageSize=100&sortBy=startsAt&sortDirection=desc",
+          this.fetchAllReportPages(
+            "/reports?status=scheduled&sortBy=startsAt&sortDirection=desc",
             forwardedHeaders,
           ),
-          this.request<PaginatedResponse<ReportDto>>(
-            "/reports?category=air_quality&status=ongoing,omitted&pageSize=60&sortBy=startsAt&sortDirection=desc",
+          this.fetchAllReportPages(
+            "/reports?category=air_quality&status=ongoing,omitted&sortBy=startsAt&sortDirection=desc",
             forwardedHeaders,
-          ).catch(() => ({
-            data: [] as ReportDto[],
-            meta: { nextCursor: null, hasNextPage: false },
-          })),
+          ).catch(() => [] as ReportDto[]),
         ]);
 
         const byId = new Map<number, ReportDto>();
-        for (const r of ongoingRes.data) byId.set(r.id, r);
-        for (const r of scheduledRes.data) byId.set(r.id, r);
+        for (const r of ongoing) byId.set(r.id, r);
+        for (const r of scheduled) byId.set(r.id, r);
 
         const seenAqLocations = new Set<string>();
-        for (const r of aqRes.data) {
+        for (const r of aq) {
           const key = `${r.source}:${r.locationLabel ?? r.externalId}`;
           if (!seenAqLocations.has(key)) {
             seenAqLocations.add(key);
