@@ -113,7 +113,7 @@ export const STATUS_META: Record<
     indicatorClass: "bg-slate-400 dark:bg-slate-500",
   },
   omitted: {
-    labelMk: "МЕРЕЊЕ НА СТАНИЦА",
+    labelMk: "ОСТАНАТИ",
     badgeClass:
       "bg-teal-50 text-teal-900 border-teal-300 dark:bg-teal-950/60 dark:text-teal-200 dark:border-teal-800",
     indicatorClass: "bg-teal-600 dark:bg-teal-400",
@@ -155,6 +155,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   "emsc-csem": "EMSC Сеизмички портал",
   "vodovod-kumanovo": "ЈП Водовод - Куманово",
   "vodovod-prilep": "ЈКП Водовод и Канализација - Прилеп",
+  "worldfires-hotspots": "WorldFires (NASA FIRMS VIIRS)",
 };
 
 export function createEmptyBreakdown(): CategoryBreakdown {
