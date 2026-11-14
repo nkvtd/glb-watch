@@ -69,6 +69,14 @@ export const CATEGORY_META: Record<string, CategoryMetaItem> = {
       "bg-pink-50 text-pink-900 border-pink-300 dark:bg-pink-950/45 dark:text-pink-200 dark:border-pink-800/80",
     barColor: "#db2777",
   },
+  internet: {
+    labelMk: "Интернет",
+    shortMk: "Интернет",
+    colorHex: "#0d9488",
+    badgeClass:
+      "bg-teal-50 text-teal-900 border-teal-300 dark:bg-teal-950/45 dark:text-teal-200 dark:border-teal-800/80",
+    barColor: "#14b8a6",
+  },
 };
 
 const DEFAULT_CATEGORY_META: CategoryMetaItem = {
@@ -156,6 +164,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   "vodovod-kumanovo": "ЈП Водовод - Куманово",
   "vodovod-prilep": "ЈКП Водовод и Канализација - Прилеп",
   "worldfires-hotspots": "WorldFires (NASA FIRMS VIIRS)",
+  "ioda-regions": "IODA",
 };
 
 export function createEmptyBreakdown(): CategoryBreakdown {

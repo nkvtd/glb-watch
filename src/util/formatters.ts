@@ -47,5 +47,8 @@ export function formatEventHeadline(ev: EventDto): {
   if (ev.category === "currency_exchange" || ev.source === "nbrm-rates") {
     return { tag: "КУРСНА ЛИСТА", text };
   }
+  if (ev.category === "internet" || ev.source === "ioda") {
+    return { tag: "ИНТЕРНЕТ", text };
+  }
   return { tag: "ИНФО", text };
 }
