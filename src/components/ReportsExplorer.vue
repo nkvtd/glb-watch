@@ -42,9 +42,9 @@
         </div>
 
         <div
-            class="p-3 bg-slate-100 dark:bg-glb-950 border-b border-slate-300 dark:border-glb-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+            class="p-3 bg-slate-100 dark:bg-glb-950 border-b border-slate-300 dark:border-glb-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"
         >
-            <div class="sm:col-span-2 flex flex-col gap-1">
+            <div class="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
                 <label
                     class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400"
                 >
@@ -67,6 +67,34 @@
                         "
                     />
                 </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label
+                    class="text-[11px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400"
+                >
+                    Категорија
+                </label>
+                <select
+                    :value="categoryFilter"
+                    class="px-2.5 py-1.5 text-xs font-mono bg-white dark:bg-glb-900 border border-slate-300 dark:border-glb-700"
+                    @change="
+                        $emit(
+                            'update:categoryFilter',
+                            ($event.target as HTMLSelectElement)
+                                .value as ReportCategory | 'all',
+                        )
+                    "
+                >
+                    <option value="all">Сите категории</option>
+                    <option
+                        v-for="(meta, key) in CATEGORY_META"
+                        :key="key"
+                        :value="key"
+                    >
+                        {{ meta.shortMk }}
+                    </option>
+                </select>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -142,6 +170,9 @@
                             ? 'bg-glb-500/15 ring-2 ring-inset ring-glb-500'
                             : 'hover:bg-slate-50 dark:hover:bg-glb-800/40'
                     "
+                    :style="{
+                        borderLeft: `3px solid ${getCategoryMeta(rep.category).barColor}`,
+                    }"
                 >
                     <div class="space-y-2">
                         <div
@@ -164,16 +195,25 @@
                             </div>
 
                             <span
-                                class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono font-bold border"
+                                class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-bold border"
                                 :class="getStatusMeta(rep.status).badgeClass"
                             >
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span
+                                        class="w-1.5 h-1.5"
+                                        :class="
+                                            getStatusMeta(rep.status)
+                                                .indicatorClass
+                                        "
+                                    ></span>
+                                    {{ getStatusMeta(rep.status).labelMk }}
+                                </span>
                                 <span
-                                    class="w-1.5 h-1.5"
-                                    :class="
-                                        getStatusMeta(rep.status).indicatorClass
-                                    "
-                                ></span>
-                                {{ getStatusMeta(rep.status).labelMk }}
+                                    v-if="timeTagFor(rep)"
+                                    class="border-l border-current/25 pl-2 ml-2 font-normal opacity-60"
+                                >
+                                    {{ timeTagFor(rep) }}
+                                </span>
                             </span>
                         </div>
 
@@ -191,7 +231,9 @@
                     <div
                         class="pt-2 border-t border-slate-200 dark:border-glb-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-400"
                     >
-                        <div class="flex flex-wrap items-center gap-3">
+                        <div
+                            class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-x-4 sm:gap-y-1"
+                        >
                             <span
                                 v-if="rep.locationLabel"
                                 class="font-bold text-slate-800 dark:text-slate-200"
@@ -210,6 +252,16 @@
                                 Крај: {{ formatMacedonianDateTime(rep.endsAt) }}
                             </span>
                         </div>
+                    </div>
+
+                    <div
+                        v-if="ongoingProgress(rep) !== null"
+                        class="h-[3px] w-full bg-slate-200 dark:bg-glb-800"
+                    >
+                        <div
+                            class="h-full bg-rose-600"
+                            :style="{ width: `${ongoingProgress(rep)}%` }"
+                        ></div>
                     </div>
                 </article>
             </div>
@@ -240,14 +292,18 @@
 
 <script setup lang="ts">
 import { SearchOutline } from "@vicons/ionicons5";
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import {
+  CATEGORY_META,
   getCategoryMeta,
   getStatusMeta,
   SOURCE_LABELS,
 } from "../util/constants";
-import { formatMacedonianDateTime } from "../util/formatters";
-import type { ReportDto } from "../util/types";
+import {
+  formatMacedonianDateTime,
+  formatReportTimeTag,
+} from "../util/formatters";
+import type { ReportCategory, ReportDto } from "../util/types";
 
 const props = defineProps<{
   items: ReportDto[];
@@ -257,6 +313,7 @@ const props = defineProps<{
   searchQuery: string;
   sourceFilter: string;
   sortOption: string;
+  categoryFilter: ReportCategory | "all";
   highlightedId: number | null;
 }>();
 
@@ -267,6 +324,7 @@ const emit = defineEmits<{
   "update:sortOption": [
     val: "startsAt:desc" | "startsAt:asc" | "observedAt:desc",
   ];
+  "update:categoryFilter": [val: ReportCategory | "all"];
   loadMore: [];
 }>();
 
@@ -292,6 +350,35 @@ const availableSources = computed(() => {
 });
 
 const scrollBoxRef = ref<HTMLElement | null>(null);
+
+const nowMs = ref<number | null>(null);
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+
+onMounted(() => {
+  nowMs.value = Date.now();
+  clockTimer = setInterval(() => {
+    nowMs.value = Date.now();
+  }, 60_000);
+});
+onUnmounted(() => {
+  if (clockTimer) clearInterval(clockTimer);
+});
+
+function timeTagFor(rep: ReportDto): string | null {
+  return nowMs.value === null ? null : formatReportTimeTag(rep, nowMs.value);
+}
+
+function ongoingProgress(rep: ReportDto): number | null {
+  if (nowMs.value === null || rep.status !== "ongoing") return null;
+  if (!rep.startsAt || !rep.endsAt) return null;
+  const start = new Date(rep.startsAt).getTime();
+  const end = new Date(rep.endsAt).getTime();
+  if (!(end > start)) return null;
+  return Math.min(
+    100,
+    Math.max(0, ((nowMs.value - start) / (end - start)) * 100),
+  );
+}
 
 function onScroll() {
   const el = scrollBoxRef.value;

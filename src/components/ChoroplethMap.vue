@@ -143,38 +143,40 @@
                 </g>
 
                 <g v-if="showPins">
-                    <template v-for="r in geocodedReports" :key="`pt-${r.id}`">
-                        <rect
-                            v-if="r.status === 'omitted'"
-                            :x="r.svgPt[0] - pinRadius * 0.9"
-                            :y="r.svgPt[1] - pinRadius * 0.9"
-                            :width="pinRadius * 1.8"
-                            :height="pinRadius * 1.8"
-                            fill="#0d9488"
-                            :stroke="palette.pinStroke"
-                            stroke-width="1.2"
-                            vector-effect="non-scaling-stroke"
-                            class="cursor-pointer"
-                            @click.stop="$emit('selectReport', r)"
-                        />
-                        <circle
-                            v-else
-                            :cx="r.svgPt[0]"
-                            :cy="r.svgPt[1]"
-                            :r="pinRadius * 1.15"
-                            :fill="r.status === 'ongoing' ? '#e11d48' : '#d97706'"
-                            :stroke="palette.pinStroke"
-                            stroke-width="1.2"
-                            vector-effect="non-scaling-stroke"
-                            class="cursor-pointer"
-                            @click.stop="$emit('selectReport', r)"
-                        />
-                    </template>
+                    <PinGlyph
+                        v-for="r in geocodedReports"
+                        :key="`pt-${r.id}`"
+                        :r="r"
+                        :radius="pinRadius"
+                        class="cursor-pointer"
+                        @click.stop="$emit('selectReport', r)"
+                    />
                 </g>
 
-                <g v-if="cam.scale > 1.85" class="pointer-events-none">
+                <g
+                    v-if="hoveredReportPins.length > 0"
+                    class="pointer-events-none"
+                >
+                    <PinGlyph
+                        v-for="r in hoveredReportPins"
+                        :key="`hp-${r.id}`"
+                        :r="r"
+                        :radius="pinRadius"
+                    />
+                </g>
+
+                <g v-if="quakePins.length > 0" class="pointer-events-none">
+                    <PinGlyph
+                        v-for="r in quakePins"
+                        :key="`eq-${r.id}`"
+                        :r="r"
+                        :radius="pinRadius"
+                    />
+                </g>
+
+                <g class="pointer-events-none">
                     <text
-                        v-for="m in visibleMunicipalities"
+                        v-for="m in labeledMunicipalities"
                         :key="`lbl-${m.code}`"
                         :x="m.centerSvg[0]"
                         :y="m.centerSvg[1]"
@@ -182,13 +184,14 @@
                         dominant-baseline="central"
                         :font-size="labelFontSize"
                         :fill="palette.labelFill"
+                        :style="{ textShadow: palette.labelShadow }"
                         :opacity="
                             focusedMunicipalityCode &&
                             focusedMunicipalityCode !== m.code
                                 ? 0.45
                                 : 0.95
                         "
-                        class="font-mono font-bold"
+                        class="font-sans font-semibold"
                     >
                         {{ m.nameMk }}
                     </text>
@@ -262,6 +265,12 @@
                             repeatCount="indefinite"
                         />
                     </circle>
+                    <PinGlyph
+                        v-for="r in radarPins"
+                        :key="`radar-${r.id}`"
+                        :r="r"
+                        :radius="pinRadius"
+                    />
                     <circle
                         :cx="nearbyCircleSvg.cx"
                         :cy="nearbyCircleSvg.cy"
@@ -292,19 +301,29 @@
             </div>
 
             <div class="mt-1.5 space-y-1 text-[11px] font-mono">
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span class="text-slate-600 dark:text-slate-400">Во тек:</span>
-                    <span class="font-bold text-rose-600 dark:text-rose-400">
+                    <span
+                        v-if="tooltipStats.ongoing > 0"
+                        class="px-1.5 py-0.5"
+                        :class="COUNT_BADGE_ONGOING"
+                    >
                         {{ tooltipStats.ongoing }}
                     </span>
+                    <span v-else :class="COUNT_ZERO">—</span>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span class="text-slate-600 dark:text-slate-400">
                         Најавено:
                     </span>
-                    <span class="font-bold text-amber-600 dark:text-amber-300">
+                    <span
+                        v-if="tooltipStats.scheduled > 0"
+                        class="px-1.5 py-0.5"
+                        :class="COUNT_BADGE_SCHEDULED"
+                    >
                         {{ tooltipStats.scheduled }}
                     </span>
+                    <span v-else :class="COUNT_ZERO">—</span>
                 </div>
                 <div
                     v-if="focusedMunicipalityCode !== tooltipMunicipality.code"
@@ -319,7 +338,7 @@
             v-if="mobilePreviewMuni && !focusedMunicipalityCode && !isNavigating"
             class="lg:hidden absolute inset-x-0 bottom-9 z-20 mx-2 p-3 bg-white/98 dark:bg-glb-950/98 border-2 border-glb-500 shadow-lg space-y-2.5"
         >
-            <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center justify-between gap-2">
                 <div>
                     <div class="text-xs font-bold uppercase tracking-wider">
                         Општина {{ mobilePreviewMuni.nameMk }}
@@ -331,7 +350,7 @@
                 <button
                     type="button"
                     aria-label="Затвори"
-                    class="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    class="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
                     @click="mobilePreviewCode = null"
                 >
                     <CloseOutline class="w-4 h-4" />
@@ -342,10 +361,17 @@
                 <div
                     class="px-2.5 py-1.5 bg-slate-100 dark:bg-glb-900 border border-slate-300 dark:border-glb-800 flex items-center justify-between"
                 >
-                    <span class="text-slate-600 dark:text-slate-400">Во тек:</span>
-                    <span class="font-bold text-rose-600 dark:text-rose-400">
+                    <span class="text-slate-600 dark:text-slate-400">
+                        Во тек:
+                    </span>
+                    <span
+                        v-if="mobilePreviewStats.ongoing > 0"
+                        class="px-1.5 py-0.5"
+                        :class="COUNT_BADGE_ONGOING"
+                    >
                         {{ mobilePreviewStats.ongoing }}
                     </span>
+                    <span v-else :class="COUNT_ZERO">—</span>
                 </div>
                 <div
                     class="px-2.5 py-1.5 bg-slate-100 dark:bg-glb-900 border border-slate-300 dark:border-glb-800 flex items-center justify-between"
@@ -353,9 +379,14 @@
                     <span class="text-slate-600 dark:text-slate-400">
                         Најавени:
                     </span>
-                    <span class="font-bold text-amber-600 dark:text-amber-300">
+                    <span
+                        v-if="mobilePreviewStats.scheduled > 0"
+                        class="px-1.5 py-0.5"
+                        :class="COUNT_BADGE_SCHEDULED"
+                    >
                         {{ mobilePreviewStats.scheduled }}
                     </span>
+                    <span v-else :class="COUNT_ZERO">—</span>
                 </div>
             </div>
 
@@ -432,13 +463,22 @@ import {
 } from "@vicons/ionicons5";
 import { navigate } from "vike/client/router";
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { createEmptyBreakdown, MAP_PALETTE } from "../util/constants";
+import { apiClient } from "../util/api";
+import {
+  COUNT_BADGE_ONGOING,
+  COUNT_BADGE_SCHEDULED,
+  COUNT_ZERO,
+  createEmptyBreakdown,
+  MAP_PALETTE,
+} from "../util/constants";
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
   projectPoint,
   SKOPJE_VIEWBOX,
 } from "../util/geo";
+import { PinGlyph } from "../util/mapPins";
+import { isRecentEarthquake } from "../util/telemetry";
 import type {
   CategoryBreakdown,
   Coordinates,
@@ -451,17 +491,21 @@ const props = withDefaults(
     municipalities: PrecomputedMunicipality[];
     statsByMunicipality: Record<string, CategoryBreakdown>;
     mapReports?: ReportDto[];
+    radarReports?: ReportDto[];
     focusedMunicipalityCode?: string | null;
     nearbyCenter?: Coordinates | null;
     nearbyRadiusMeters?: number;
     showPins?: boolean;
+    nowMs?: number;
   }>(),
   {
     mapReports: () => [],
+    radarReports: () => [],
     focusedMunicipalityCode: null,
     nearbyCenter: null,
     nearbyRadiusMeters: 2500,
     showPins: false,
+    nowMs: 0,
   },
 );
 
@@ -487,10 +531,6 @@ const cam = reactive({
 
 const palette = MAP_PALETTE;
 
-/**
- * On a municipality page, only render the polygons belonging to that statistical region!
- * This cuts SVG DOM elements by ~85% and restricts map exploration to the statistical region.
- */
 const visibleMunicipalities = computed(() => {
   if (!props.focusedMunicipalityCode) return props.municipalities;
   const focused = props.municipalities.find(
@@ -869,16 +909,72 @@ const tooltipStyle = computed(() => {
 });
 
 const pinRadius = computed(() => Math.max(1.2, 5.0 / cam.scale ** 0.75));
-const labelFontSize = computed(() => Math.max(1.8, 9.5 / cam.scale ** 0.72));
+const labelFontSize = computed(() =>
+  Math.max(1.8, Math.min(10, 9.5 / cam.scale ** 0.72)),
+);
 
 const geocodedReports = computed(() =>
-  props.mapReports
-    .filter((r) => r.coordinates !== null)
-    .map((r) => ({
-      ...r,
-      svgPt: projectPoint(r.coordinates.lng, r.coordinates.lat),
-    })),
+  props.mapReports.flatMap((r) =>
+    r.coordinates
+      ? [
+          {
+            ...r,
+            svgPt: projectPoint(r.coordinates.lng, r.coordinates.lat),
+            pinStroke: palette.pinStroke,
+          },
+        ]
+      : [],
+  ),
 );
+
+const labeledMunicipalities = computed(() =>
+  visibleMunicipalities.value.filter((m) => {
+    if (
+      m.code === hoveredCode.value ||
+      m.code === props.focusedMunicipalityCode
+    ) {
+      return true;
+    }
+    if (cam.scale < 1.35) return false;
+    const w = (m.bbox[2] - m.bbox[0]) * cam.scale;
+    const h = (m.bbox[3] - m.bbox[1]) * cam.scale;
+    return w >= m.nameMk.length * 6.5 + 14 && h >= 14;
+  }),
+);
+
+const radarPins = computed(() => {
+  if (!props.nearbyCenter || props.radarReports.length === 0) return [];
+  return props.radarReports.flatMap((r) =>
+    r.coordinates
+      ? [
+          {
+            id: r.id,
+            title: r.title,
+            status: r.status,
+            category: r.category,
+            svgPt: projectPoint(r.coordinates.lng, r.coordinates.lat),
+            pinStroke: palette.pinStroke,
+          },
+        ]
+      : [],
+  );
+});
+
+const quakePins = computed(() =>
+  props.showPins
+    ? []
+    : geocodedReports.value.filter((r) => isRecentEarthquake(r, props.nowMs)),
+);
+
+const hoveredReportPins = computed(() => {
+  const code = hoveredCode.value ?? mobilePreviewCode.value;
+  if (props.showPins || !code || props.nearbyCenter) return [];
+  return geocodedReports.value.filter(
+    (r) =>
+      !isRecentEarthquake(r, props.nowMs) &&
+      apiClient.resolveReportMunicipalityCode(r, props.municipalities) === code,
+  );
+});
 
 const nearbyCircleSvg = computed(() => {
   if (!props.nearbyCenter) return null;

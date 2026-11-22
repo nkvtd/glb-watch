@@ -138,12 +138,18 @@ export function getStatusMeta(status: LifecycleStatus) {
   return STATUS_META[status] ?? STATUS_META.unknown;
 }
 
+export const COUNT_BADGE_ONGOING = "bg-rose-600 text-white font-bold";
+export const COUNT_BADGE_SCHEDULED =
+  "bg-amber-500 text-slate-950 dark:bg-amber-400 dark:text-slate-950 font-bold";
+export const COUNT_ZERO = "text-slate-400 dark:text-slate-600";
+
 export const MAP_PALETTE = {
   canvasBg: "var(--map-canvas-bg)",
   strokeBase: "var(--map-stroke-base)",
   strokeHighlight: "var(--map-stroke-highlight)",
   pinStroke: "var(--map-pin-stroke)",
   labelFill: "var(--map-label-fill)",
+  labelShadow: "var(--map-label-shadow)",
   none: "var(--map-none)",
   noneHover: "var(--map-none-hover)",
   scheduled: "var(--map-scheduled)",
@@ -165,6 +171,10 @@ export const SOURCE_LABELS: Record<string, string> = {
   "vodovod-prilep": "ЈКП Водовод и Канализација - Прилеп",
   "worldfires-hotspots": "WorldFires (NASA FIRMS VIIRS)",
   "ioda-regions": "IODA",
+  "opstina-veles": "Општина Велес",
+  "opstina-debrca": "Општина Дебрца",
+  "opstina-ilinden": "Општина Илинден",
+  "opstina-ohrid": "Општина Охрид",
 };
 
 export function createEmptyBreakdown(): CategoryBreakdown {

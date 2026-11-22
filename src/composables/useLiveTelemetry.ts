@@ -9,18 +9,24 @@ export function useLiveTelemetry(
 ) {
   const mapReports = ref<ReportDto[]>(initialReports);
   const activeEvents = ref<EventDto[]>(initialEvents);
+  const lastUpdatedAt = ref<Date | null>(null);
+  const refreshing = ref(false);
   let timer: ReturnType<typeof setInterval> | null = null;
 
-  async function refreshNow() {
+  async function refreshNow(force = false) {
+    refreshing.value = true;
     try {
       const [reports, events] = await Promise.all([
-        apiClient.getMapTelemetryReports(),
-        apiClient.getActiveEvents(),
+        apiClient.getMapTelemetryReports(undefined, force),
+        apiClient.getActiveEvents(undefined, force),
       ]);
       mapReports.value = reports;
       activeEvents.value = events;
+      lastUpdatedAt.value = new Date();
     } catch {
       // Keep existing state on transient network errors
+    } finally {
+      refreshing.value = false;
     }
   }
 
@@ -34,6 +40,7 @@ export function useLiveTelemetry(
   }
 
   onMounted(() => {
+    lastUpdatedAt.value = new Date();
     timer = setInterval(refreshNow, intervalMs);
     document.addEventListener("visibilitychange", onVisibilityChange);
   });
@@ -48,5 +55,8 @@ export function useLiveTelemetry(
   return {
     mapReports,
     activeEvents,
+    lastUpdatedAt,
+    refreshing,
+    refreshNow,
   };
 }

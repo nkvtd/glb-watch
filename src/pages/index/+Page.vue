@@ -4,13 +4,18 @@
     >
         <AppHeader
             :events="activeEvents"
+            :municipalities="municipalities"
+            :stats-by-municipality="statsByMunicipality"
+            :last-updated-at="lastUpdatedAt"
+            :refreshing="refreshing"
             @reset="resetHome"
             @toggle-theme="toggleTheme"
+            @refresh="refreshNow(true)"
         />
 
         <main class="max-w-7xl w-full mx-auto px-4 pt-3 space-y-6 flex-1">
             <div
-                class="flex flex-col gap-3 lg:h-[calc(100vh-4.75rem)] lg:min-h-165 pb-2"
+                class="flex flex-col gap-3 lg:h-[calc(100vh-6.75rem)] lg:min-h-155 pb-2"
             >
                 <CategoryBar
                     class="shrink-0"
@@ -27,9 +32,14 @@
                         <ChoroplethMap
                             :municipalities="municipalities"
                             :stats-by-municipality="statsByMunicipality"
+                            :map-reports="filteredMapReports"
+                            :radar-reports="
+                                radar.active.value ? radar.reports.value : []
+                            "
                             :nearby-center="radar.coords.value"
                             :nearby-radius-meters="radar.radiusMeters.value"
                             :show-pins="false"
+                            :now-ms="lastUpdatedAt?.getTime() ?? 0"
                         />
                     </div>
 
@@ -40,12 +50,16 @@
                             class="grid grid-cols-2 border border-slate-300 dark:border-glb-800 bg-white dark:bg-glb-900 divide-x divide-slate-300 dark:divide-glb-800 shrink-0"
                         >
                             <div
-                                class="p-3.5 border-t-4 border-t-rose-600 dark:border-t-rose-500"
+                                class="p-3.5 border-t-4 border-t-rose-600 dark:border-t-rose-500 bg-rose-50/70 dark:bg-rose-950/35"
                             >
                                 <div
-                                    class="text-xs font-mono uppercase text-slate-500 dark:text-slate-400"
+                                    class="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1.5"
                                 >
-                                    Во тек
+                                    <span
+                                        v-if="ongoingNationalCount > 0"
+                                        class="w-2 h-2 bg-rose-500 animate-pulse shrink-0"
+                                    ></span>
+                                    <span>Во тек</span>
                                 </div>
                                 <div
                                     class="mt-0.5 text-3xl font-mono font-bold text-rose-600 dark:text-rose-400"
@@ -54,7 +68,7 @@
                                 </div>
                             </div>
                             <div
-                                class="p-3.5 border-t-4 border-t-amber-500 dark:border-t-amber-400"
+                                class="p-3.5 border-t-4 border-t-amber-500 dark:border-t-amber-400 bg-amber-50/70 dark:bg-amber-950/30"
                             >
                                 <div
                                     class="text-xs font-mono uppercase text-slate-500 dark:text-slate-400"
@@ -174,14 +188,16 @@
                                         >
                                             <span
                                                 v-if="item.stats.ongoing > 0"
-                                                class="px-1.5 py-0.5 bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800 font-bold"
+                                                class="px-1.5 py-0.5"
+                                                :class="COUNT_BADGE_ONGOING"
                                                 title="Во тек"
                                             >
                                                 {{ item.stats.ongoing }}
                                             </span>
                                             <span
                                                 v-if="item.stats.scheduled > 0"
-                                                class="px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/65 dark:text-amber-200 dark:border-amber-800 font-bold"
+                                                class="px-1.5 py-0.5"
+                                                :class="COUNT_BADGE_SCHEDULED"
                                                 title="Најавени"
                                             >
                                                 {{ item.stats.scheduled }}
@@ -191,9 +207,10 @@
                                                     item.stats.ongoing === 0 &&
                                                     item.stats.scheduled === 0
                                                 "
-                                                class="px-1.5 py-0.5 text-slate-400"
+                                                class="px-1.5 py-0.5"
+                                                :class="COUNT_ZERO"
                                             >
-                                                0
+                                                —
                                             </span>
                                         </div>
                                     </a>
@@ -444,6 +461,9 @@ import { useLiveTelemetry } from "../../composables/useLiveTelemetry";
 import { useNearbyRadar } from "../../composables/useNearbyRadar";
 import { useTheme } from "../../composables/useTheme";
 import {
+  COUNT_BADGE_ONGOING,
+  COUNT_BADGE_SCHEDULED,
+  COUNT_ZERO,
   createEmptyBreakdown,
   getCategoryMeta,
   getStatusMeta,
@@ -460,10 +480,8 @@ import type { Data } from "./+data";
 const ssrData = useData<Data>();
 
 const municipalities = computed(() => ssrData.municipalities);
-const { mapReports, activeEvents } = useLiveTelemetry(
-  ssrData.mapReports,
-  ssrData.activeEvents,
-);
+const { mapReports, activeEvents, lastUpdatedAt, refreshing, refreshNow } =
+  useLiveTelemetry(ssrData.mapReports, ssrData.activeEvents);
 
 const selectedCategory = ref<ReportCategory | "all">("all");
 const sidebarTab = ref<"leaderboard" | "radar">("leaderboard");
@@ -519,7 +537,12 @@ function resetHome() {
 }
 
 const nationalCategoryCounts = computed(() =>
-  countActiveByCategory(mapReports.value),
+  countActiveByCategory(
+    mapReports.value,
+    undefined,
+    undefined,
+    lastUpdatedAt.value?.getTime() ?? 0,
+  ),
 );
 
 const totalActiveIncidentCount = computed(
@@ -550,7 +573,12 @@ const scheduledNationalCount = computed(
 const topMunicipalities = computed(() => {
   const q = leaderboardSearch.value.trim().toLowerCase();
   return municipalities.value
-    .filter((m) => !q || m.nameMk.toLowerCase().includes(q))
+    .filter(
+      (m) =>
+        !q ||
+        m.nameMk.toLowerCase().includes(q) ||
+        m.nameEn.toLowerCase().includes(q),
+    )
     .map((m) => ({
       m,
       stats: statsByMunicipality.value[m.code] ?? createEmptyBreakdown(),

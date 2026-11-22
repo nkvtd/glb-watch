@@ -13,14 +13,23 @@ export function isActiveReport(r: ReportDto): boolean {
   return r.status === "ongoing" || r.status === "scheduled";
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function isRecentEarthquake(r: ReportDto, nowMs = Date.now()): boolean {
+  if (r.category !== "earthquake" || nowMs <= 0) return false;
+  const started = Date.parse(r.startsAt ?? r.observedAt);
+  return !Number.isNaN(started) && nowMs - started <= DAY_MS;
+}
+
 export function countActiveByCategory(
   reports: readonly ReportDto[],
   municipalities?: readonly PrecomputedMunicipality[],
   targetMunicipalityCode?: string,
+  nowMs?: number,
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const r of reports) {
-    if (!isActiveReport(r)) continue;
+    if (!isActiveReport(r) && !isRecentEarthquake(r, nowMs)) continue;
     if (
       targetMunicipalityCode &&
       municipalities &&

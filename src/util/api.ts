@@ -216,9 +216,11 @@ export class ApiClient {
 
   async getMapTelemetryReports(
     forwardedHeaders?: Record<string, string>,
+    forceRefresh = false,
   ): Promise<ReportDto[]> {
     const now = Date.now();
     if (
+      !forceRefresh &&
       this.cachedMapReports &&
       now - this.mapReportsCacheTime < TELEMETRY_TTL_MS
     ) {
@@ -231,7 +233,10 @@ export class ApiClient {
 
     this.inFlightMapReports = (async () => {
       try {
-        const [ongoing, scheduled, aq] = await Promise.all([
+        const since24h = new Date(
+          Date.now() - 24 * 60 * 60 * 1000,
+        ).toISOString();
+        const [ongoing, scheduled, aq, internet, quakes] = await Promise.all([
           this.fetchAllReportPages(
             "/reports?status=ongoing&sortBy=startsAt&sortDirection=desc",
             forwardedHeaders,
@@ -242,6 +247,14 @@ export class ApiClient {
           ),
           this.fetchAllReportPages(
             "/reports?category=air_quality&status=ongoing,omitted&sortBy=startsAt&sortDirection=desc",
+            forwardedHeaders,
+          ).catch(() => [] as ReportDto[]),
+          this.fetchAllReportPages(
+            "/reports?category=internet&status=ongoing,omitted&sortBy=startsAt&sortDirection=desc",
+            forwardedHeaders,
+          ).catch(() => [] as ReportDto[]),
+          this.fetchAllReportPages(
+            `/reports?category=earthquake&from=${encodeURIComponent(since24h)}&sortBy=startsAt&sortDirection=desc`,
             forwardedHeaders,
           ).catch(() => [] as ReportDto[]),
         ]);
@@ -257,6 +270,19 @@ export class ApiClient {
             seenAqLocations.add(key);
             byId.set(r.id, r);
           }
+        }
+
+        const seenInternetLocations = new Set<string>();
+        for (const r of internet) {
+          const key = `${r.source}:${r.municipalityCode ?? r.locationLabel ?? r.externalId}`;
+          if (!seenInternetLocations.has(key)) {
+            seenInternetLocations.add(key);
+            byId.set(r.id, r);
+          }
+        }
+
+        for (const r of quakes) {
+          if (!byId.has(r.id)) byId.set(r.id, r);
         }
 
         const merged = Array.from(byId.values());
@@ -322,9 +348,14 @@ export class ApiClient {
 
   async getActiveEvents(
     forwardedHeaders?: Record<string, string>,
+    forceRefresh = false,
   ): Promise<EventDto[]> {
     const now = Date.now();
-    if (this.cachedEvents && now - this.eventsCacheTime < TELEMETRY_TTL_MS) {
+    if (
+      !forceRefresh &&
+      this.cachedEvents &&
+      now - this.eventsCacheTime < TELEMETRY_TTL_MS
+    ) {
       return this.cachedEvents;
     }
 

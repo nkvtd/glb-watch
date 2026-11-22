@@ -6,9 +6,14 @@ export type ReportCategory =
   | "wildfire"
   | "air_quality"
   | "earthquake"
+  | "internet"
   | (string & {});
 
-export type EventCategory = "fuel_price" | "currency_exchange" | (string & {});
+export type EventCategory =
+  | "fuel_price"
+  | "currency_exchange"
+  | "internet"
+  | (string & {});
 
 export type LifecycleStatus =
   | "scheduled"

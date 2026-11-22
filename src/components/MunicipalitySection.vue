@@ -10,12 +10,6 @@
                 Состојба по статистички региони и општини
             </h2>
             <div class="flex items-center gap-2">
-                <input
-                    v-model="search"
-                    type="text"
-                    placeholder="Пребарај општина..."
-                    class="px-2.5 py-1 text-xs font-mono bg-slate-50 dark:bg-glb-950 border border-slate-300 dark:border-glb-700 focus:outline-none focus:border-glb-500"
-                />
                 <button
                     type="button"
                     class="px-2.5 py-1 text-xs font-mono border cursor-pointer transition-colors"
@@ -70,14 +64,16 @@
                 <span>{{ reg.nameMk.replace(" Регион", "") }}</span>
                 <span
                     v-if="reg.ongoingCount > 0"
-                    class="px-1.5 py-0.5 text-[10px] font-bold bg-red-300 text-red-900 border border-red-300 dark:bg-red-950/80 dark:text-red-200 dark:border-red-800"
+                    class="px-1.5 py-0.5 text-[10px]"
+                    :class="COUNT_BADGE_ONGOING"
                     title="Во тек"
                 >
                     {{ reg.ongoingCount }}
                 </span>
                 <span
                     v-if="reg.scheduledCount > 0"
-                    class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-800"
+                    class="px-1.5 py-0.5 text-[10px]"
+                    :class="COUNT_BADGE_SCHEDULED"
                     title="Најавени"
                 >
                     {{ reg.scheduledCount }}
@@ -124,24 +120,24 @@
 
                 <div class="flex items-center gap-4 shrink-0 font-mono text-xs">
                     <span
-                        class="w-14 text-right px-1.5 py-0.5 font-bold border"
+                        class="w-14 text-right px-1.5 py-0.5"
                         :class="
                             row.stats.ongoing > 0
-                                ? 'bg-red-100 text-red-900 border-red-300 dark:bg-red-950/70 dark:text-red-200 dark:border-red-800'
-                                : 'border-transparent text-slate-400'
+                                ? COUNT_BADGE_ONGOING
+                                : COUNT_ZERO
                         "
                     >
-                        {{ row.stats.ongoing }}
+                        {{ row.stats.ongoing > 0 ? row.stats.ongoing : "—" }}
                     </span>
                     <span
-                        class="w-16 text-right px-1.5 py-0.5 font-bold border"
+                        class="w-16 text-right px-1.5 py-0.5"
                         :class="
                             row.stats.scheduled > 0
-                                ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/65 dark:text-amber-200 dark:border-amber-800'
-                                : 'border-transparent text-slate-400'
+                                ? COUNT_BADGE_SCHEDULED
+                                : COUNT_ZERO
                         "
                     >
-                        {{ row.stats.scheduled }}
+                        {{ row.stats.scheduled > 0 ? row.stats.scheduled : "—" }}
                     </span>
                 </div>
             </a>
@@ -192,7 +188,12 @@
 <script setup lang="ts">
 import { ChevronBackOutline, ChevronForwardOutline } from "@vicons/ionicons5";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { createEmptyBreakdown } from "../util/constants";
+import {
+  COUNT_BADGE_ONGOING,
+  COUNT_BADGE_SCHEDULED,
+  COUNT_ZERO,
+  createEmptyBreakdown,
+} from "../util/constants";
 import { compareMunicipalityRows } from "../util/telemetry";
 import type { CategoryBreakdown, PrecomputedMunicipality } from "../util/types";
 
@@ -202,7 +203,6 @@ const props = defineProps<{
 }>();
 
 const selectedRegion = ref<string>("all");
-const search = ref("");
 const onlyActive = ref(true);
 const currentPage = ref(1);
 
@@ -223,10 +223,6 @@ onUnmounted(() => {
 });
 
 const pageSize = computed(() => (isMobile.value ? 6 : 16));
-
-watch(search, () => {
-  currentPage.value = 1;
-});
 
 const regions = computed(() => {
   const map = new Map<
@@ -259,15 +255,10 @@ const regions = computed(() => {
 });
 
 const filteredRows = computed(() => {
-  const q = search.value.trim().toLowerCase();
   return props.municipalities
     .filter(
       (m) =>
-        (selectedRegion.value === "all" ||
-          m.regionCode === selectedRegion.value) &&
-        (!q ||
-          m.nameMk.toLowerCase().includes(q) ||
-          m.nameEn.toLowerCase().includes(q)),
+        selectedRegion.value === "all" || m.regionCode === selectedRegion.value,
     )
     .map((m) => ({
       m,
