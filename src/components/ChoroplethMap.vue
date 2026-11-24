@@ -165,10 +165,10 @@
                     />
                 </g>
 
-                <g v-if="quakePins.length > 0" class="pointer-events-none">
+                <g v-if="hazardPins.length > 0" class="pointer-events-none">
                     <PinGlyph
-                        v-for="r in quakePins"
-                        :key="`eq-${r.id}`"
+                        v-for="r in hazardPins"
+                        :key="`hz-${r.id}`"
                         :r="r"
                         :radius="pinRadius"
                     />
@@ -254,13 +254,13 @@
                     <circle
                         :cx="nearbyCircleSvg.cx"
                         :cy="nearbyCircleSvg.cy"
-                        :r="pinRadius * 1.9"
+                        :r="pinRadius * 1.1"
                         fill="#0ea5e9"
                         fill-opacity="0.3"
                     >
                         <animate
                             attributeName="r"
-                            :values="`${pinRadius * 1.4};${pinRadius * 2.5};${pinRadius * 1.4}`"
+                            :values="`${pinRadius * 0.8};${pinRadius * 1.45};${pinRadius * 0.8}`"
                             dur="1.8s"
                             repeatCount="indefinite"
                         />
@@ -274,7 +274,7 @@
                     <circle
                         :cx="nearbyCircleSvg.cx"
                         :cy="nearbyCircleSvg.cy"
-                        :r="pinRadius * 1.15"
+                        :r="pinRadius * 0.65"
                         fill="#0ea5e9"
                         stroke="#ffffff"
                         stroke-width="1.8"
@@ -515,9 +515,11 @@ defineEmits<{
 
 const MAX_ZOOM = 20;
 const MIN_ZOOM = 1;
+const DEFAULT_FIT = 0.8;
 
 const containerRef = ref<HTMLElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
+const fitPxPerUnit = ref<number | null>(null);
 const hoveredCode = ref<string | null>(null);
 const mobilePreviewCode = ref<string | null>(null);
 const isNavigating = ref(false);
@@ -567,7 +569,10 @@ function stopAnimation() {
   }
 }
 
-onUnmounted(() => stopAnimation());
+onUnmounted(() => {
+  stopAnimation();
+  window.removeEventListener("resize", measureFit);
+});
 
 function animateCamera(target: { scale: number; tx: number; ty: number }) {
   if (animFrame) cancelAnimationFrame(animFrame);
@@ -627,7 +632,18 @@ function frameFocusedMunicipality(animate = false) {
   }
 }
 
+function measureFit() {
+  const rect = svgRef.value?.getBoundingClientRect();
+  if (!rect) return;
+  fitPxPerUnit.value = Math.min(
+    rect.width / MAP_WIDTH,
+    rect.height / MAP_HEIGHT,
+  );
+}
+
 onMounted(() => {
+  measureFit();
+  window.addEventListener("resize", measureFit);
   if (props.focusedMunicipalityCode) {
     frameFocusedMunicipality(false);
   }
@@ -908,7 +924,11 @@ const tooltipStyle = computed(() => {
   };
 });
 
-const pinRadius = computed(() => Math.max(1.2, 5.0 / cam.scale ** 0.75));
+const pinRadius = computed(() => {
+  const fit = fitPxPerUnit.value ?? DEFAULT_FIT;
+  const targetPx = Math.max(6, 9.2 / cam.scale ** 0.13);
+  return Math.max(0.55, targetPx / (cam.scale * fit));
+});
 const labelFontSize = computed(() =>
   Math.max(1.8, Math.min(10, 9.5 / cam.scale ** 0.72)),
 );
@@ -921,6 +941,10 @@ const geocodedReports = computed(() =>
             ...r,
             svgPt: projectPoint(r.coordinates.lng, r.coordinates.lat),
             pinStroke: palette.pinStroke,
+            resolvedMunicipalityCode: apiClient.resolveReportMunicipalityCode(
+              r,
+              props.municipalities,
+            ),
           },
         ]
       : [],
@@ -960,10 +984,19 @@ const radarPins = computed(() => {
   );
 });
 
-const quakePins = computed(() =>
+function isAlwaysVisibleHazard(r: ReportDto, nowMs: number): boolean {
+  return (
+    isRecentEarthquake(r, nowMs) ||
+    (r.category === "wildfire" && r.status === "ongoing")
+  );
+}
+
+const hazardPins = computed(() =>
   props.showPins
     ? []
-    : geocodedReports.value.filter((r) => isRecentEarthquake(r, props.nowMs)),
+    : geocodedReports.value.filter((r) =>
+        isAlwaysVisibleHazard(r, props.nowMs),
+      ),
 );
 
 const hoveredReportPins = computed(() => {
@@ -971,8 +1004,8 @@ const hoveredReportPins = computed(() => {
   if (props.showPins || !code || props.nearbyCenter) return [];
   return geocodedReports.value.filter(
     (r) =>
-      !isRecentEarthquake(r, props.nowMs) &&
-      apiClient.resolveReportMunicipalityCode(r, props.municipalities) === code,
+      !isAlwaysVisibleHazard(r, props.nowMs) &&
+      r.resolvedMunicipalityCode === code,
   );
 });
 

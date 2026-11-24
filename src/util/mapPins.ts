@@ -106,9 +106,10 @@ function glyphNodes(r: PinGlyphReport) {
       y: -4.6,
       width: 9.2,
       height: 9.2,
-      style: { color: fill },
+      overflow: "visible",
+      style: { color: fill, paintOrder: "stroke fill" },
       stroke: r.pinStroke,
-      "stroke-width": 25,
+      "stroke-width": 32,
       "stroke-linejoin": "round",
     }),
   ];

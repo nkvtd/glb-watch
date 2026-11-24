@@ -27,8 +27,7 @@
     --map-stroke-highlight: #0f172a;
     --map-pin-stroke: #ffffff;
     --map-label-fill: #ffffff;
-    --map-label-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.85), 0 0 2px rgba(15, 23, 42, 0.55);
+    --map-label-shadow: 0 0 1px rgba(15, 23, 42, 0.38);
     --map-none: #f8fafc;
     --map-none-hover: #e2e8f0;
     --map-scheduled: #f3d078;
@@ -44,9 +43,7 @@
     --map-canvas-bg: #0b1214;
     --map-stroke-base: #2e4145;
     --map-stroke-highlight: #f1f5f9;
-    --map-pin-stroke: #0b1214;
     --map-label-fill: #ffffff;
-    --map-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
     --map-none: #152124;
     --map-none-hover: #1f3035;
     --map-scheduled: #856221;
