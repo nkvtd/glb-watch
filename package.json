@@ -22,7 +22,7 @@
   "dependencies": {
     "vike": "^0.4.270",
     "vike-vue": "^0.9.16",
-    "vue": "^3.5.45",
+    "vue": "^3.5.46",
     "@vicons/ionicons5": "^0.13.0"
   },
   "devDependencies": {
